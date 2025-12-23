@@ -1,6 +1,10 @@
-import { CalendarDays, Leaf } from 'lucide-react';
+import { CalendarDays, Leaf, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 export const Header = () => {
+  const { user, signOut } = useAuth();
+  
   const today = new Date().toLocaleDateString('tr-TR', {
     weekday: 'long',
     day: 'numeric',
@@ -20,9 +24,21 @@ export const Header = () => {
               <p className="text-xs text-muted-foreground">Sağlıklı yaşam takibi</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 px-3 py-2 rounded-xl">
-            <CalendarDays className="h-4 w-4" />
-            <span className="capitalize">{today}</span>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 px-3 py-2 rounded-xl">
+              <CalendarDays className="h-4 w-4" />
+              <span className="capitalize">{today}</span>
+            </div>
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
