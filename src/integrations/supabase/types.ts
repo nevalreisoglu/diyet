@@ -14,7 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      food_items: {
+        Row: {
+          calories: number
+          carbs: number | null
+          created_at: string
+          fat: number | null
+          id: string
+          meal_id: string
+          name: string
+          protein: number | null
+        }
+        Insert: {
+          calories?: number
+          carbs?: number | null
+          created_at?: string
+          fat?: number | null
+          id?: string
+          meal_id: string
+          name: string
+          protein?: number | null
+        }
+        Update: {
+          calories?: number
+          carbs?: number | null
+          created_at?: string
+          fat?: number | null
+          id?: string
+          meal_id?: string
+          name?: string
+          protein?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_items_meal_id_fkey"
+            columns: ["meal_id"]
+            isOneToOne: false
+            referencedRelation: "meals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meals: {
+        Row: {
+          created_at: string
+          id: string
+          meal_date: string
+          meal_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meal_date?: string
+          meal_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meal_date?: string
+          meal_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          target_calories: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          target_calories?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          target_calories?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
