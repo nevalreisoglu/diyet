@@ -1,27 +1,41 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { CalorieProgress } from '@/components/CalorieProgress';
 import { QuickStats } from '@/components/QuickStats';
 import { MealCard } from '@/components/MealCard';
 import { AddFoodDialog } from '@/components/AddFoodDialog';
-import { useNutritionStore } from '@/hooks/useNutritionStore';
+import { useAuth } from '@/hooks/useAuth';
+import { useNutritionData } from '@/hooks/useNutritionData';
 import { MealType } from '@/types/nutrition';
+import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
 const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null);
-
+  const navigate = useNavigate();
+  
+  const { user, loading: authLoading } = useAuth();
+  
   const {
     meals,
     targetCalories,
+    loading: dataLoading,
     addFood,
     removeFood,
     getTotalCalories,
     getMealCalories,
     getMealFoods,
-  } = useNutritionStore();
+  } = useNutritionData(user?.id);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   const handleOpenAddFood = (mealType: MealType) => {
     setSelectedMealType(mealType);
@@ -33,6 +47,21 @@ const Index = () => {
   };
 
   const totalCalories = getTotalCalories();
+
+  if (authLoading || dataLoading) {
+    return (
+      <div className="min-h-screen bg-background gradient-hero flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background gradient-hero">
