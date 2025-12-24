@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
+import { Search, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface AddFoodDialogProps {
   open: boolean;
@@ -31,6 +34,49 @@ export const AddFoodDialog = ({
 }: AddFoodDialogProps) => {
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const { toast } = useToast();
+
+  const handleLookupCalories = async () => {
+    if (!name.trim()) {
+      toast({
+        title: "Hata",
+        description: "Önce yiyecek adını girin",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLookingUp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-calories', {
+        body: { foodName: name.trim() },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.calories) {
+        setCalories(data.calories.toString());
+        toast({
+          title: "Kalori bulundu",
+          description: `${name} için tahmini kalori: ${data.calories} kcal`,
+        });
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Kalori arama hatası:', error);
+      toast({
+        title: "Kalori bulunamadı",
+        description: error instanceof Error ? error.message : "Kalori araması başarısız oldu",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,14 +146,33 @@ export const AddFoodDialog = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="calories" className="text-foreground">Kalori (kcal)</Label>
-            <Input
-              id="calories"
-              type="number"
-              value={calories}
-              onChange={(e) => setCalories(e.target.value)}
-              placeholder="örn: 250"
-              className="bg-background border-input"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="calories"
+                type="number"
+                value={calories}
+                onChange={(e) => setCalories(e.target.value)}
+                placeholder="örn: 250"
+                className="bg-background border-input flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleLookupCalories}
+                disabled={isLookingUp || !name.trim()}
+                title="Kaloriyi otomatik bul"
+              >
+                {isLookingUp ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Yiyecek adını girdikten sonra 🔍 butonuna tıklayarak kaloriyi otomatik bulabilirsiniz
+            </p>
           </div>
           <Button
             type="submit"
