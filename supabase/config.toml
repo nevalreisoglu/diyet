@@ -1,1 +1,4 @@
 project_id = "xkxhgceirdcilttcceao"
+
+[functions.lookup-calories]
+verify_jwt = false
