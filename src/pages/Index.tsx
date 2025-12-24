@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { CalorieProgress } from '@/components/CalorieProgress';
 import { QuickStats } from '@/components/QuickStats';
 import { MealCard } from '@/components/MealCard';
 import { AddFoodDialog } from '@/components/AddFoodDialog';
+import { WaterTracker } from '@/components/WaterTracker';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
 import { MealType } from '@/types/nutrition';
-import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -77,6 +77,9 @@ const Index = () => {
           mealsLogged={meals.length}
           targetCalories={targetCalories}
         />
+
+        {/* Water Tracker */}
+        <WaterTracker userId={user?.id} />
 
         {/* Meals Section */}
         <section>

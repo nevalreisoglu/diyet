@@ -85,6 +85,7 @@ export type Database = {
           display_name: string | null
           id: string
           target_calories: number | null
+          target_water_ml: number | null
           updated_at: string
           user_id: string
         }
@@ -93,6 +94,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           target_calories?: number | null
+          target_water_ml?: number | null
           updated_at?: string
           user_id: string
         }
@@ -101,7 +103,32 @@ export type Database = {
           display_name?: string | null
           id?: string
           target_calories?: number | null
+          target_water_ml?: number | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      water_intake: {
+        Row: {
+          amount_ml: number
+          created_at: string
+          id: string
+          intake_date: string
+          user_id: string
+        }
+        Insert: {
+          amount_ml?: number
+          created_at?: string
+          id?: string
+          intake_date?: string
+          user_id: string
+        }
+        Update: {
+          amount_ml?: number
+          created_at?: string
+          id?: string
+          intake_date?: string
           user_id?: string
         }
         Relationships: []
