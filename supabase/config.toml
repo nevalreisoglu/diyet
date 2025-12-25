@@ -2,3 +2,6 @@ project_id = "xkxhgceirdcilttcceao"
 
 [functions.lookup-calories]
 verify_jwt = false
+
+[functions.parse-food-pdf]
+verify_jwt = false

@@ -6,6 +6,7 @@ import { QuickStats } from '@/components/QuickStats';
 import { MealCard } from '@/components/MealCard';
 import { AddFoodDialog } from '@/components/AddFoodDialog';
 import { WaterTracker } from '@/components/WaterTracker';
+import { PdfUploader } from '@/components/PdfUploader';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
 import { MealType } from '@/types/nutrition';
@@ -78,8 +79,11 @@ const Index = () => {
           targetCalories={targetCalories}
         />
 
-        {/* Water Tracker */}
-        <WaterTracker userId={user?.id} />
+        {/* Water Tracker & PDF Uploader */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <WaterTracker userId={user?.id} />
+          <PdfUploader userId={user?.id} />
+        </div>
 
         {/* Meals Section */}
         <section>
@@ -106,6 +110,7 @@ const Index = () => {
         onOpenChange={setDialogOpen}
         mealType={selectedMealType}
         onAddFood={handleAddFood}
+        userId={user?.id}
       />
     </div>
   );
