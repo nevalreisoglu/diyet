@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,6 +49,7 @@ export const AddFoodDialog = ({
   const [calories, setCalories] = useState('');
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
+  const [loadingCustomFoods, setLoadingCustomFoods] = useState(false);
   const { toast } = useToast();
 
   // Fetch custom foods when dialog opens
@@ -61,6 +62,7 @@ export const AddFoodDialog = ({
   const fetchCustomFoods = async () => {
     if (!userId) return;
     
+    setLoadingCustomFoods(true);
     try {
       const { data, error } = await supabase
         .from('custom_foods')
@@ -72,6 +74,8 @@ export const AddFoodDialog = ({
       setCustomFoods(data || []);
     } catch (error) {
       console.error('Error fetching custom foods:', error);
+    } finally {
+      setLoadingCustomFoods(false);
     }
   };
 
@@ -135,7 +139,7 @@ export const AddFoodDialog = ({
 
   if (!mealType) return null;
 
-  const hasCustomFoods = customFoods.length > 0;
+  const hasCustomFoods = customFoods.length > 0 || loadingCustomFoods;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,16 +153,20 @@ export const AddFoodDialog = ({
 
         <div className="flex-1 overflow-auto">
           {/* Quick add section with tabs if user has custom foods */}
-          {hasCustomFoods ? (
-            <Tabs defaultValue="custom" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-3">
-                <TabsTrigger value="custom">Listem</TabsTrigger>
-                <TabsTrigger value="default">Genel</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="custom" className="mt-0">
-                <Label className="text-muted-foreground text-sm">PDF'den yüklenen yiyecekler</Label>
-                <ScrollArea className="h-32 mt-2">
+          <Tabs defaultValue="custom" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-3">
+              <TabsTrigger value="custom">Listem</TabsTrigger>
+              <TabsTrigger value="default">Genel</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="custom" className="mt-0">
+              <Label className="text-muted-foreground text-sm">PDF'den yüklenen yiyecekler</Label>
+              <ScrollArea className="h-32 mt-2">
+                {loadingCustomFoods ? (
+                  <div className="flex items-center justify-center h-24">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : customFoods.length > 0 ? (
                   <div className="flex flex-wrap gap-2 pr-4">
                     {customFoods.map((food) => (
                       <button
@@ -171,28 +179,19 @@ export const AddFoodDialog = ({
                       </button>
                     ))}
                   </div>
-                </ScrollArea>
-              </TabsContent>
-              
-              <TabsContent value="default" className="mt-0">
-                <Label className="text-muted-foreground text-sm">Hızlı Ekle</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {defaultQuickFoods.map((food) => (
-                    <button
-                      key={food.name}
-                      onClick={() => handleQuickAdd(food)}
-                      className="px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-full transition-colors"
-                    >
-                      {food.name}
-                    </button>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="space-y-3">
-              <Label className="text-muted-foreground">Hızlı Ekle</Label>
-              <div className="flex flex-wrap gap-2">
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-24 text-muted-foreground text-sm">
+                    <FileText className="h-6 w-6 mb-2 opacity-50" />
+                    <p>Henüz yiyecek yüklemediniz</p>
+                    <p className="text-xs">Ana sayfadan PDF yükleyin</p>
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+            
+            <TabsContent value="default" className="mt-0">
+              <Label className="text-muted-foreground text-sm">Hızlı Ekle</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
                 {defaultQuickFoods.map((food) => (
                   <button
                     key={food.name}
@@ -203,8 +202,8 @@ export const AddFoodDialog = ({
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            </TabsContent>
+          </Tabs>
 
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
