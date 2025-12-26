@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useHistoryData } from '@/hooks/useHistoryData';
-import { Loader2, ChevronDown, ChevronUp, Droplets, Flame, ArrowLeft } from 'lucide-react';
+import { WeeklyCharts } from '@/components/WeeklyCharts';
+import { Loader2, ChevronDown, ChevronUp, Droplets, Flame, Dumbbell, ArrowLeft } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { mealTypeLabels, mealTypeIcons, MealType } from '@/types/nutrition';
@@ -78,7 +79,12 @@ const History = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-3">
+          <>
+            {/* Weekly Charts */}
+            <WeeklyCharts data={history} />
+
+            <h3 className="text-lg font-semibold text-foreground pt-4">Günlük Detaylar</h3>
+            <div className="space-y-3">
             {history.map((day) => {
               const isExpanded = expandedDays.has(day.date);
               const caloriePercentage = Math.min(100, (day.totalCalories / day.targetCalories) * 100);
@@ -107,7 +113,7 @@ const History = () => {
                           </span>
                         )}
                       </div>
-                      <div className="flex gap-6">
+                      <div className="flex flex-wrap gap-4">
                         <div className="flex items-center gap-2">
                           <Flame className="h-4 w-4 text-orange-500" />
                           <span className="text-sm text-muted-foreground">
@@ -120,6 +126,14 @@ const History = () => {
                             {day.totalWater} / {day.targetWater} ml
                           </span>
                         </div>
+                        {day.totalExercise > 0 && (
+                          <div className="flex items-center gap-2">
+                            <Dumbbell className="h-4 w-4 text-green-500" />
+                            <span className="text-sm text-muted-foreground">
+                              {day.totalExercise} dk
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2 mt-2">
                         <Progress value={caloriePercentage} className="h-1.5 flex-1 bg-secondary" />
@@ -191,7 +205,8 @@ const History = () => {
                 </div>
               );
             })}
-          </div>
+            </div>
+          </>
         )}
       </main>
     </div>

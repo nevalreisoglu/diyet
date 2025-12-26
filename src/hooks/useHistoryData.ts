@@ -8,6 +8,7 @@ interface DayData {
   targetCalories: number;
   totalWater: number;
   targetWater: number;
+  totalExercise: number;
   meals: {
     type: MealType;
     calories: number;
@@ -62,6 +63,16 @@ export const useHistoryData = (userId: string | undefined, days: number = 7) => 
 
       if (waterError) throw waterError;
 
+      // Fetch exercise log
+      const { data: exerciseData, error: exerciseError } = await supabase
+        .from('exercise_log')
+        .select('exercise_date, duration_minutes')
+        .eq('user_id', userId)
+        .gte('exercise_date', startDateStr)
+        .lte('exercise_date', endDateStr);
+
+      if (exerciseError) throw exerciseError;
+
       // Group by date
       const dateMap = new Map<string, DayData>();
 
@@ -74,6 +85,7 @@ export const useHistoryData = (userId: string | undefined, days: number = 7) => 
           targetCalories,
           totalWater: 0,
           targetWater,
+          totalExercise: 0,
           meals: [],
         });
       }
@@ -102,6 +114,14 @@ export const useHistoryData = (userId: string | undefined, days: number = 7) => 
         const dayData = dateMap.get(water.intake_date);
         if (dayData) {
           dayData.totalWater += water.amount_ml;
+        }
+      });
+
+      // Process exercise
+      (exerciseData || []).forEach((exercise) => {
+        const dayData = dateMap.get(exercise.exercise_date);
+        if (dayData) {
+          dayData.totalExercise += exercise.duration_minutes;
         }
       });
 
