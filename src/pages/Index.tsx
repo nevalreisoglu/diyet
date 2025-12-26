@@ -7,6 +7,8 @@ import { MealCard } from '@/components/MealCard';
 import { AddFoodDialog } from '@/components/AddFoodDialog';
 import { WaterTracker } from '@/components/WaterTracker';
 import { PdfUploader } from '@/components/PdfUploader';
+import { BeverageTracker } from '@/components/BeverageTracker';
+import { ExerciseTracker } from '@/components/ExerciseTracker';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
 import { MealType } from '@/types/nutrition';
@@ -79,9 +81,11 @@ const Index = () => {
           targetCalories={targetCalories}
         />
 
-        {/* Water Tracker & PDF Uploader */}
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/* Trackers Grid */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <WaterTracker userId={user?.id} />
+          <BeverageTracker userId={user?.id} />
+          <ExerciseTracker userId={user?.id} />
           <PdfUploader userId={user?.id} />
         </div>
 

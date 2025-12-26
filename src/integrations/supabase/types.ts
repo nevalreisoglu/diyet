@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      beverage_intake: {
+        Row: {
+          beverage_type: string
+          created_at: string
+          cups: number
+          id: string
+          intake_date: string
+          user_id: string
+        }
+        Insert: {
+          beverage_type: string
+          created_at?: string
+          cups?: number
+          id?: string
+          intake_date?: string
+          user_id: string
+        }
+        Update: {
+          beverage_type?: string
+          created_at?: string
+          cups?: number
+          id?: string
+          intake_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_foods: {
         Row: {
           calories: number
@@ -43,6 +70,33 @@ export type Database = {
           id?: string
           name?: string
           protein?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exercise_log: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          exercise_date: string
+          id: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number
+          exercise_date?: string
+          id?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          exercise_date?: string
+          id?: string
+          notes?: string | null
           user_id?: string
         }
         Relationships: []
