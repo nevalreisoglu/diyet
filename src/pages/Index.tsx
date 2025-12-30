@@ -70,7 +70,7 @@ const Index = () => {
     <div className="min-h-screen bg-background gradient-hero">
       <Header />
 
-      <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <main className="container max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Calorie Progress */}
         <CalorieProgress current={totalCalories} target={targetCalories} />
 
@@ -81,18 +81,20 @@ const Index = () => {
           targetCalories={targetCalories}
         />
 
-        {/* Trackers Grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <WaterTracker userId={user?.id} />
-          <BeverageTracker userId={user?.id} />
-          <ExerciseTracker userId={user?.id} />
-          <PdfUploader userId={user?.id} />
-        </div>
+        {/* Trackers Section */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Günlük Takip</h2>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <WaterTracker userId={user?.id} compact />
+            <BeverageTracker userId={user?.id} />
+            <ExerciseTracker userId={user?.id} />
+          </div>
+        </section>
 
         {/* Meals Section */}
-        <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Öğünler</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Öğünler</h2>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             {mealTypes.map((mealType, index) => (
               <MealCard
                 key={mealType}
@@ -105,6 +107,12 @@ const Index = () => {
               />
             ))}
           </div>
+        </section>
+
+        {/* PDF Uploader - Full Width */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Yiyecek Listem</h2>
+          <PdfUploader userId={user?.id} />
         </section>
       </main>
 
