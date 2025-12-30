@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import { Upload, FileText, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCustomFoods } from '@/hooks/useCustomFoods';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -25,15 +24,19 @@ export const PdfUploader = ({ userId }: PdfUploaderProps) => {
   };
 
   return (
-    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-medium flex items-center gap-2">
-          <FileText className="h-4 w-4 text-primary" />
-          Yiyecek Listem
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
+    <div className="bg-card rounded-2xl p-5 border border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">
+              Yiyecek listesi içeren PDF yükleyin
+            </p>
+          </div>
+        </div>
+        <div className="sm:ml-auto">
           <input
             ref={fileInputRef}
             type="file"
@@ -43,7 +46,6 @@ export const PdfUploader = ({ userId }: PdfUploaderProps) => {
           />
           <Button
             variant="outline"
-            className="w-full"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading || !userId}
           >
@@ -59,50 +61,50 @@ export const PdfUploader = ({ userId }: PdfUploaderProps) => {
               </>
             )}
           </Button>
-          <p className="text-xs text-muted-foreground mt-2">
-            Yiyecek listesi içeren PDF yükleyin
-          </p>
         </div>
+      </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : customFoods.length > 0 ? (
-          <ScrollArea className="h-48">
-            <div className="space-y-2">
-              {customFoods.map((food) => (
-                <div
-                  key={food.id}
-                  className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{food.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {food.calories} kcal
-                      {food.protein && ` • P: ${food.protein}g`}
-                      {food.carbs && ` • K: ${food.carbs}g`}
-                      {food.fat && ` • Y: ${food.fat}g`}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => deleteCustomFood(food.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+      {loading ? (
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : customFoods.length > 0 ? (
+        <ScrollArea className="h-48">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {customFoods.map((food) => (
+              <div
+                key={food.id}
+                className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 group"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{food.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {food.calories} kcal
+                    {food.protein && ` • P: ${food.protein}g`}
+                    {food.carbs && ` • K: ${food.carbs}g`}
+                    {food.fat && ` • Y: ${food.fat}g`}
+                  </p>
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => deleteCustomFood(food.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      ) : (
+        <div className="text-center py-8 bg-secondary/30 rounded-xl">
+          <FileText className="h-10 w-10 text-muted-foreground/50 mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">
             Henüz yiyecek listesi yüklenmemiş
           </p>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 };
