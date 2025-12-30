@@ -75,14 +75,22 @@ const Auth = () => {
       let errorMessage = 'Bir hata oluştu.';
       
       const msg = error?.message?.toLowerCase() || '';
+      const code = error?.code || '';
+      const status = error?.status || 0;
       
-      if (msg.includes('invalid login credentials')) {
+      if (msg.includes('invalid login credentials') || code === 'invalid_credentials') {
         errorMessage = 'E-posta veya şifre hatalı.';
-      } else if (msg.includes('user already registered') || msg.includes('already been registered') || error?.status === 422) {
+      } else if (
+        msg.includes('user already registered') || 
+        msg.includes('already been registered') || 
+        code === 'user_already_exists' ||
+        code === 'email_exists' ||
+        status === 422
+      ) {
         errorMessage = 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.';
       } else if (msg.includes('password should be at least') || msg.includes('password')) {
         errorMessage = 'Şifre en az 6 karakter olmalıdır.';
-      } else if (msg.includes('invalid email') || msg.includes('email')) {
+      } else if (msg.includes('invalid email')) {
         errorMessage = 'Geçerli bir e-posta adresi girin.';
       } else if (msg.includes('signup is disabled')) {
         errorMessage = 'Kayıt şu anda devre dışı.';
