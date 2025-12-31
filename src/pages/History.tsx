@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useHistoryData } from '@/hooks/useHistoryData';
+import { useHistoryMutations } from '@/hooks/useHistoryMutations';
 import { WeeklyCharts } from '@/components/WeeklyCharts';
-import { Loader2, ChevronDown, ChevronUp, Droplets, Flame, Dumbbell, ArrowLeft } from 'lucide-react';
+import { AddFoodDialog } from '@/components/AddFoodDialog';
+import { Loader2, ChevronDown, ChevronUp, Droplets, Flame, Dumbbell, ArrowLeft, Plus, Minus, X } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { mealTypeLabels, mealTypeIcons, MealType } from '@/types/nutrition';
@@ -12,8 +14,13 @@ import { mealTypeLabels, mealTypeIcons, MealType } from '@/types/nutrition';
 const History = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { history, loading } = useHistoryData(user?.id, 14);
+  const { history, loading, refetch } = useHistoryData(user?.id, 14);
+  const { addFoodToDate, removeFoodFromDate, addWaterToDate, removeWaterFromDate } = useHistoryMutations(user?.id, refetch);
+  
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const [addFoodDialogOpen, setAddFoodDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null);
 
   if (authLoading) {
     return (
@@ -53,6 +60,18 @@ const History = () => {
       day: 'numeric',
       month: 'long',
     });
+  };
+
+  const handleOpenAddFood = (date: string, mealType: MealType) => {
+    setSelectedDate(date);
+    setSelectedMealType(mealType);
+    setAddFoodDialogOpen(true);
+  };
+
+  const handleAddFood = (mealType: MealType, food: { name: string; calories: number }) => {
+    if (selectedDate) {
+      addFoodToDate(selectedDate, mealType, food);
+    }
   };
 
   return (
@@ -149,57 +168,96 @@ const History = () => {
 
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
-                      {day.meals.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          Bu gün için kayıt yok
-                        </p>
-                      ) : (
-                        (['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((mealType) => {
-                          const mealData = day.meals.find((m) => m.type === mealType);
-                          if (!mealData || mealData.foods.length === 0) return null;
+                      {/* Meal sections with add buttons */}
+                      {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((mealType) => {
+                        const mealData = day.meals.find((m) => m.type === mealType);
+                        const hasFoods = mealData && mealData.foods.length > 0;
 
-                          return (
-                            <div key={mealType} className="bg-secondary/30 rounded-xl p-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg">{mealTypeIcons[mealType]}</span>
-                                  <span className="font-medium text-foreground">
-                                    {mealTypeLabels[mealType]}
-                                  </span>
-                                </div>
-                                <span className="text-sm font-medium text-primary">
-                                  {mealData.calories} kcal
+                        return (
+                          <div key={mealType} className="bg-secondary/30 rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{mealTypeIcons[mealType]}</span>
+                                <span className="font-medium text-foreground">
+                                  {mealTypeLabels[mealType]}
                                 </span>
                               </div>
+                              <div className="flex items-center gap-2">
+                                {hasFoods && (
+                                  <span className="text-sm font-medium text-primary">
+                                    {mealData.calories} kcal
+                                  </span>
+                                )}
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary"
+                                  onClick={() => handleOpenAddFood(day.date, mealType)}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            {hasFoods ? (
                               <div className="space-y-1">
-                                {mealData.foods.map((food, idx) => (
+                                {mealData.foods.map((food) => (
                                   <div
-                                    key={idx}
-                                    className="flex items-center justify-between text-sm"
+                                    key={food.id}
+                                    className="flex items-center justify-between text-sm group"
                                   >
                                     <span className="text-muted-foreground">{food.name}</span>
-                                    <span className="text-muted-foreground">{food.calories} kcal</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground">{food.calories} kcal</span>
+                                      <button
+                                        onClick={() => removeFoodFromDate(food.id)}
+                                        className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
-                            </div>
-                          );
-                        })
-                      )}
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Kayıt yok</p>
+                            )}
+                          </div>
+                        );
+                      })}
 
-                      {day.totalWater > 0 && (
-                        <div className="bg-blue-500/10 rounded-xl p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Droplets className="h-5 w-5 text-blue-500" />
-                              <span className="font-medium text-foreground">Su Tüketimi</span>
-                            </div>
+                      {/* Water section with add/remove buttons */}
+                      <div className="bg-blue-500/10 rounded-xl p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Droplets className="h-5 w-5 text-blue-500" />
+                            <span className="font-medium text-foreground">Su Tüketimi</span>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-blue-500">
                               {day.totalWater} ml ({Math.floor(day.totalWater / 250)} bardak)
                             </span>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 rounded-lg hover:bg-blue-500/10 hover:text-blue-500"
+                                onClick={() => removeWaterFromDate(day.date)}
+                                disabled={day.totalWater <= 0}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 rounded-lg hover:bg-blue-500/10 hover:text-blue-500"
+                                onClick={() => addWaterToDate(day.date)}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -209,6 +267,15 @@ const History = () => {
           </>
         )}
       </main>
+
+      {/* Add Food Dialog */}
+      <AddFoodDialog
+        open={addFoodDialogOpen}
+        onOpenChange={setAddFoodDialogOpen}
+        mealType={selectedMealType}
+        onAddFood={handleAddFood}
+        userId={user?.id}
+      />
     </div>
   );
 };
