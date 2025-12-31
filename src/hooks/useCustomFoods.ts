@@ -70,7 +70,7 @@ export const useCustomFoods = (userId: string | undefined) => {
       });
 
       const { data, error } = await supabase.functions.invoke('parse-food-pdf', {
-        body: { pdfText: text, userId },
+        body: { pdfText: text },
       });
 
       if (error) throw error;
