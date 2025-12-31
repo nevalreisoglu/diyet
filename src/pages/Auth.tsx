@@ -72,28 +72,33 @@ const Auth = () => {
       }
     } catch (error: any) {
       console.error('Auth error:', error);
+      console.log('Full error details:', JSON.stringify(error, null, 2));
       let errorMessage = 'Bir hata oluştu.';
       
       const msg = error?.message?.toLowerCase() || '';
       const code = error?.code || '';
-      const status = error?.status || 0;
       
+      // Check for specific error conditions based on actual error message/code
       if (msg.includes('invalid login credentials') || code === 'invalid_credentials') {
         errorMessage = 'E-posta veya şifre hatalı.';
       } else if (
         msg.includes('user already registered') || 
         msg.includes('already been registered') || 
         code === 'user_already_exists' ||
-        code === 'email_exists' ||
-        status === 422
+        code === 'email_exists'
       ) {
         errorMessage = 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.';
-      } else if (msg.includes('password should be at least') || msg.includes('password')) {
+      } else if (msg.includes('password should be at least') || msg.includes('password') || code === 'weak_password') {
         errorMessage = 'Şifre en az 6 karakter olmalıdır.';
-      } else if (msg.includes('invalid email')) {
+      } else if (msg.includes('invalid email') || msg.includes('unable to validate email') || code === 'validation_failed') {
         errorMessage = 'Geçerli bir e-posta adresi girin.';
-      } else if (msg.includes('signup is disabled')) {
+      } else if (msg.includes('signup is disabled') || code === 'signup_disabled') {
         errorMessage = 'Kayıt şu anda devre dışı.';
+      } else if (msg.includes('email rate limit') || code === 'over_email_send_rate_limit') {
+        errorMessage = 'Çok fazla deneme yaptınız. Lütfen birkaç dakika bekleyin.';
+      } else if (error?.message) {
+        // Show the actual error message for debugging
+        errorMessage = error.message;
       }
 
       toast({
