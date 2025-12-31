@@ -12,7 +12,7 @@ interface DayData {
   meals: {
     type: MealType;
     calories: number;
-    foods: { name: string; calories: number }[];
+    foods: { id: string; name: string; calories: number }[];
   }[];
 }
 
@@ -45,7 +45,7 @@ export const useHistoryData = (userId: string | undefined, days: number = 7) => 
       // Fetch meals with foods
       const { data: mealsData, error: mealsError } = await supabase
         .from('meals')
-        .select('id, meal_type, meal_date, food_items(name, calories)')
+        .select('id, meal_type, meal_date, food_items(id, name, calories)')
         .eq('user_id', userId)
         .gte('meal_date', startDateStr)
         .lte('meal_date', endDateStr)
@@ -95,6 +95,7 @@ export const useHistoryData = (userId: string | undefined, days: number = 7) => 
         const dayData = dateMap.get(meal.meal_date);
         if (dayData) {
           const foods = (meal.food_items || []).map((f: any) => ({
+            id: f.id,
             name: f.name,
             calories: f.calories,
           }));
