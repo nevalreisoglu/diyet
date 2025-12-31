@@ -12,11 +12,40 @@ serve(async (req) => {
   }
 
   try {
-    const { pdfText, userId } = await req.json();
-
-    if (!pdfText || !userId) {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("No authorization header provided");
       return new Response(
-        JSON.stringify({ error: 'PDF text and userId are required' }),
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use authenticated user's ID instead of request body
+    const userId = user.id;
+    console.log(`Authenticated user: ${userId}`);
+
+    const { pdfText } = await req.json();
+
+    if (!pdfText) {
+      return new Response(
+        JSON.stringify({ error: 'PDF text is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -93,13 +122,14 @@ Sadece yiyecek isimlerini ve değerlerini çıkar, açıklama ekleme.`
       );
     }
 
-    // Save to database
+    // Use authenticated client with user context for database operations
+    // This respects RLS policies
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // First, delete existing custom foods for this user
-    await supabase
+    await supabaseAdmin
       .from('custom_foods')
       .delete()
       .eq('user_id', userId);
@@ -115,7 +145,7 @@ Sadece yiyecek isimlerini ve değerlerini çıkar, açıklama ekleme.`
         fat: food.fat || null,
       }));
 
-      const { error: insertError } = await supabase
+      const { error: insertError } = await supabaseAdmin
         .from('custom_foods')
         .insert(foodsToInsert);
 
@@ -125,7 +155,7 @@ Sadece yiyecek isimlerini ve değerlerini çıkar, açıklama ekleme.`
       }
     }
 
-    console.log(`Successfully parsed and saved ${foods.length} foods`);
+    console.log(`Successfully parsed and saved ${foods.length} foods for user ${userId}`);
 
     return new Response(
       JSON.stringify({ success: true, foods, count: foods.length }),
