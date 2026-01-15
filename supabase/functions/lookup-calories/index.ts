@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       console.error("No authorization header provided");
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
@@ -28,8 +28,9 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: authData, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError || !authData?.user) {
       console.error("Authentication failed:", authError?.message);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
@@ -37,7 +38,8 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Authenticated user: ${user.id}`);
+    const userId = authData.user.id;
+    console.log(`Authenticated user: ${userId}`);
 
     const { foodName } = await req.json();
 
@@ -57,7 +59,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Looking up calories for: ${foodName} (user: ${user.id})`);
+    console.log(`Looking up calories for: ${foodName} (user: ${userId})`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -114,8 +116,8 @@ Eğer yiyecek belirsizse veya tanımlanamıyorsa, makul bir tahmin yap. Sadece r
       );
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content?.trim();
+    const aiData = await response.json();
+    const content = aiData.choices?.[0]?.message?.content?.trim();
     
     console.log(`AI response for "${foodName}": ${content}`);
 

@@ -12,9 +12,9 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
+    // Verify authentication using getClaims
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       console.error("No authorization header provided");
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
@@ -28,8 +28,9 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError || !data?.user) {
       console.error("Authentication failed:", authError?.message);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
@@ -37,8 +38,8 @@ serve(async (req) => {
       );
     }
 
-    // Use authenticated user's ID instead of request body
-    const userId = user.id;
+    // Use authenticated user's ID
+    const userId = data.user.id;
     console.log(`Authenticated user: ${userId}`);
 
     const { pdfText } = await req.json();
