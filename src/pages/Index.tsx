@@ -11,6 +11,7 @@ import { BeverageTracker } from '@/components/BeverageTracker';
 import { ExerciseTracker } from '@/components/ExerciseTracker';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
+import { useMealSchedules } from '@/hooks/useMealSchedules';
 import { MealType } from '@/types/nutrition';
 import { Loader2 } from 'lucide-react';
 
@@ -33,6 +34,8 @@ const Index = () => {
     getMealCalories,
     getMealFoods,
   } = useNutritionData(user?.id);
+
+  const { schedules, getScheduleForMeal, refetch: refetchSchedules } = useMealSchedules(user?.id);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -101,6 +104,7 @@ const Index = () => {
                 mealType={mealType}
                 calories={getMealCalories(mealType)}
                 foods={getMealFoods(mealType)}
+                scheduledTime={getScheduleForMeal(mealType)}
                 onAddFood={() => handleOpenAddFood(mealType)}
                 onRemoveFood={(foodId) => removeFood(mealType, foodId)}
                 delay={index * 100}
@@ -112,7 +116,7 @@ const Index = () => {
         {/* PDF Uploader - Full Width */}
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-foreground">Yiyecek Listem</h2>
-          <PdfUploader userId={user?.id} />
+          <PdfUploader userId={user?.id} onSchedulesUpdated={refetchSchedules} />
         </section>
       </main>
 

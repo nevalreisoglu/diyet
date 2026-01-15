@@ -57,7 +57,7 @@ serve(async (req) => {
 
     console.log('Parsing PDF text with AI...');
 
-    // Use AI to extract food items from PDF text
+    // Use AI to extract food items AND meal schedules from PDF text
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -69,20 +69,30 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Sen bir beslenme uzmanısın. Verilen metinden yiyecek isimlerini ve kalori değerlerini çıkar.
+            content: `Sen bir beslenme uzmanısın. Verilen metinden yiyecek isimlerini, kalori değerlerini ve öğün saatlerini çıkar.
             
 Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
-[
-  {"name": "yiyecek adı", "calories": kalori_sayısı, "protein": protein_gram, "carbs": karbonhidrat_gram, "fat": yağ_gram},
-  ...
-]
+{
+  "foods": [
+    {"name": "yiyecek adı", "calories": kalori_sayısı, "protein": protein_gram, "carbs": karbonhidrat_gram, "fat": yağ_gram}
+  ],
+  "mealSchedules": {
+    "breakfast": "08:00",
+    "lunch": "12:30",
+    "dinner": "19:00",
+    "snack": "15:00"
+  }
+}
 
-Eğer kalori veya besin değeri belirtilmemişse, ortalama değerleri tahmin et.
-Sadece yiyecek isimlerini ve değerlerini çıkar, açıklama ekleme.`
+Öğün saatleri için:
+- Eğer metinde belirli saatler varsa onları kullan
+- Eğer yoksa mantıklı varsayılan saatler öner (kahvaltı: 08:00, öğle: 12:30, akşam: 19:00, atıştırmalık: 15:00)
+
+Eğer kalori veya besin değeri belirtilmemişse, ortalama değerleri tahmin et.`
           },
           {
             role: 'user',
-            content: `Bu PDF'deki yiyecek listesini analiz et ve JSON formatında döndür:\n\n${pdfText}`
+            content: `Bu PDF'deki yiyecek listesini ve öğün saatlerini analiz et ve JSON formatında döndür:\n\n${pdfText}`
           }
         ],
       }),
@@ -95,12 +105,13 @@ Sadece yiyecek isimlerini ve değerlerini çıkar, açıklama ekleme.`
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || '[]';
+    const content = aiData.choices?.[0]?.message?.content || '{}';
     
     console.log('AI response:', content);
 
     // Parse the JSON response
     let foods = [];
+    let mealSchedules: Record<string, string> = {};
     try {
       // Clean the response - remove markdown code blocks if present
       let cleanedContent = content.trim();
@@ -113,7 +124,15 @@ Sadece yiyecek isimlerini ve değerlerini çıkar, açıklama ekleme.`
       if (cleanedContent.endsWith('```')) {
         cleanedContent = cleanedContent.slice(0, -3);
       }
-      foods = JSON.parse(cleanedContent.trim());
+      const parsed = JSON.parse(cleanedContent.trim());
+      
+      // Handle both old array format and new object format
+      if (Array.isArray(parsed)) {
+        foods = parsed;
+      } else {
+        foods = parsed.foods || [];
+        mealSchedules = parsed.mealSchedules || {};
+      }
     } catch (parseError) {
       console.error('Failed to parse AI response:', parseError);
       return new Response(
@@ -131,6 +150,12 @@ Sadece yiyecek isimlerini ve değerlerini çıkar, açıklama ekleme.`
     // First, delete existing custom foods for this user
     await supabaseAdmin
       .from('custom_foods')
+      .delete()
+      .eq('user_id', userId);
+
+    // Delete existing meal schedules for this user
+    await supabaseAdmin
+      .from('meal_schedules')
       .delete()
       .eq('user_id', userId);
 
@@ -155,10 +180,28 @@ Sadece yiyecek isimlerini ve değerlerini çıkar, açıklama ekleme.`
       }
     }
 
-    console.log(`Successfully parsed and saved ${foods.length} foods for user ${userId}`);
+    // Insert meal schedules
+    if (Object.keys(mealSchedules).length > 0) {
+      const schedulesToInsert = Object.entries(mealSchedules).map(([mealType, scheduledTime]) => ({
+        user_id: userId,
+        meal_type: mealType,
+        scheduled_time: scheduledTime,
+      }));
+
+      const { error: scheduleError } = await supabaseAdmin
+        .from('meal_schedules')
+        .insert(schedulesToInsert);
+
+      if (scheduleError) {
+        console.error('Meal schedule insert error:', scheduleError);
+        // Don't throw, just log - schedules are optional
+      }
+    }
+
+    console.log(`Successfully parsed and saved ${foods.length} foods and ${Object.keys(mealSchedules).length} meal schedules for user ${userId}`);
 
     return new Response(
-      JSON.stringify({ success: true, foods, count: foods.length }),
+      JSON.stringify({ success: true, foods, mealSchedules, count: foods.length }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

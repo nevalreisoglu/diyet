@@ -1,4 +1,4 @@
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Clock } from 'lucide-react';
 import { MealType, mealTypeLabels, mealTypeIcons, FoodItem } from '@/types/nutrition';
 import { Button } from '@/components/ui/button';
 
@@ -6,6 +6,7 @@ interface MealCardProps {
   mealType: MealType;
   calories: number;
   foods: FoodItem[];
+  scheduledTime?: string | null;
   onAddFood: () => void;
   onRemoveFood: (foodId: string) => void;
   delay?: number;
@@ -29,6 +30,7 @@ export const MealCard = ({
   mealType,
   calories,
   foods,
+  scheduledTime,
   onAddFood,
   onRemoveFood,
   delay = 0,
@@ -49,7 +51,15 @@ export const MealCard = ({
             <h3 className="font-semibold text-foreground">
               {mealTypeLabels[mealType]}
             </h3>
-            <p className="text-sm text-muted-foreground">{calories} kcal</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">{calories} kcal</p>
+              {scheduledTime && (
+                <span className="flex items-center gap-1 text-xs text-primary">
+                  <Clock className="h-3 w-3" />
+                  {scheduledTime}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <Button

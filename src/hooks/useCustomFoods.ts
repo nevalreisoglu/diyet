@@ -11,7 +11,7 @@ interface CustomFood {
   fat: number | null;
 }
 
-export const useCustomFoods = (userId: string | undefined) => {
+export const useCustomFoods = (userId: string | undefined, onSchedulesUpdated?: () => void) => {
   const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -81,6 +81,8 @@ export const useCustomFoods = (userId: string | undefined) => {
           description: `${data.count} yiyecek listeden eklendi.`,
         });
         fetchCustomFoods();
+        // Notify parent that schedules may have been updated
+        onSchedulesUpdated?.();
       } else {
         throw new Error(data.error || 'PDF işlenemedi');
       }

@@ -6,11 +6,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PdfUploaderProps {
   userId: string | undefined;
+  onSchedulesUpdated?: () => void;
 }
 
-export const PdfUploader = ({ userId }: PdfUploaderProps) => {
+export const PdfUploader = ({ userId, onSchedulesUpdated }: PdfUploaderProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { customFoods, loading, uploading, uploadPdf, deleteCustomFood } = useCustomFoods(userId);
+  const { customFoods, loading, uploading, uploadPdf, deleteCustomFood } = useCustomFoods(userId, onSchedulesUpdated);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
