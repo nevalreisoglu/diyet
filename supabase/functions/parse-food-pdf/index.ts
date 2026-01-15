@@ -42,11 +42,11 @@ serve(async (req) => {
     const userId = data.user.id;
     console.log(`Authenticated user: ${userId}`);
 
-    const { pdfText } = await req.json();
+    const { pdfBase64 } = await req.json();
 
-    if (!pdfText) {
+    if (!pdfBase64) {
       return new Response(
-        JSON.stringify({ error: 'PDF text is required' }),
+        JSON.stringify({ error: 'PDF data is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -56,9 +56,9 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Parsing PDF text with AI...');
+    console.log('Parsing PDF with AI vision...');
 
-    // Use AI to extract food items AND meal schedules from PDF text
+    // Use multimodal AI to extract food items AND meal schedules from PDF
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -69,9 +69,12 @@ serve(async (req) => {
         model: 'google/gemini-2.5-flash',
         messages: [
           {
-            role: 'system',
-            content: `Sen bir beslenme uzmanısın. Verilen metinden yiyecek isimlerini, kalori değerlerini ve öğün saatlerini çıkar.
-            
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Sen bir beslenme uzmanısın. Bu PDF dosyasındaki yiyecek listesini ve öğün saatlerini analiz et.
+
 Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
 {
   "foods": [
@@ -85,15 +88,19 @@ Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
   }
 }
 
-Öğün saatleri için:
-- Eğer metinde belirli saatler varsa onları kullan
-- Eğer yoksa mantıklı varsayılan saatler öner (kahvaltı: 08:00, öğle: 12:30, akşam: 19:00, atıştırmalık: 15:00)
-
-Eğer kalori veya besin değeri belirtilmemişse, ortalama değerleri tahmin et.`
-          },
-          {
-            role: 'user',
-            content: `Bu PDF'deki yiyecek listesini ve öğün saatlerini analiz et ve JSON formatında döndür:\n\n${pdfText}`
+Kurallar:
+- Her yiyecek için tahmini kalori ve besin değerlerini hesapla
+- Öğün saatleri metinde varsa onları kullan, yoksa varsayılan değerleri kullan
+- Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et`
+              },
+              {
+                type: 'file',
+                file: {
+                  filename: 'diet.pdf',
+                  file_data: `data:application/pdf;base64,${pdfBase64}`
+                }
+              }
+            ]
           }
         ],
       }),
