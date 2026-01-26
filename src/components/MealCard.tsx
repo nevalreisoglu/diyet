@@ -1,6 +1,7 @@
-import { Plus, X, Clock } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { MealType, mealTypeLabels, mealTypeIcons, FoodItem } from '@/types/nutrition';
 import { Button } from '@/components/ui/button';
+import { MealTimeEditor } from '@/components/MealTimeEditor';
 
 interface MealCardProps {
   mealType: MealType;
@@ -9,6 +10,8 @@ interface MealCardProps {
   scheduledTime?: string | null;
   onAddFood: () => void;
   onRemoveFood: (foodId: string) => void;
+  onUpdateTime: (time: string) => void;
+  onClearTime: () => void;
   delay?: number;
 }
 
@@ -16,14 +19,18 @@ const mealColorClasses: Record<MealType, string> = {
   breakfast: 'bg-meal-breakfast/10 border-meal-breakfast/20',
   lunch: 'bg-meal-lunch/10 border-meal-lunch/20',
   dinner: 'bg-meal-dinner/10 border-meal-dinner/20',
-  snack: 'bg-meal-snack/10 border-meal-snack/20',
+  snack1: 'bg-meal-snack/10 border-meal-snack/20',
+  snack2: 'bg-meal-snack/10 border-meal-snack/20',
+  snack3: 'bg-meal-snack/10 border-meal-snack/20',
 };
 
 const mealIconBgClasses: Record<MealType, string> = {
   breakfast: 'bg-meal-breakfast/20',
   lunch: 'bg-meal-lunch/20',
   dinner: 'bg-meal-dinner/20',
-  snack: 'bg-meal-snack/20',
+  snack1: 'bg-meal-snack/20',
+  snack2: 'bg-meal-snack/20',
+  snack3: 'bg-meal-snack/20',
 };
 
 export const MealCard = ({
@@ -33,6 +40,8 @@ export const MealCard = ({
   scheduledTime,
   onAddFood,
   onRemoveFood,
+  onUpdateTime,
+  onClearTime,
   delay = 0,
 }: MealCardProps) => {
   return (
@@ -53,12 +62,11 @@ export const MealCard = ({
             </h3>
             <div className="flex items-center gap-2">
               <p className="text-sm text-muted-foreground">{calories} kcal</p>
-              {scheduledTime && (
-                <span className="flex items-center gap-1 text-xs text-primary">
-                  <Clock className="h-3 w-3" />
-                  {scheduledTime}
-                </span>
-              )}
+              <MealTimeEditor
+                scheduledTime={scheduledTime || null}
+                onSave={onUpdateTime}
+                onClear={onClearTime}
+              />
             </div>
           </div>
         </div>
