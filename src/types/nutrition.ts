@@ -1,4 +1,4 @@
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack1' | 'snack2' | 'snack3';
 
 export interface FoodItem {
   id: string;
@@ -27,12 +27,16 @@ export const mealTypeLabels: Record<MealType, string> = {
   breakfast: 'Kahvaltı',
   lunch: 'Öğle Yemeği',
   dinner: 'Akşam Yemeği',
-  snack: 'Atıştırmalık',
+  snack1: 'Ara Öğün 1',
+  snack2: 'Ara Öğün 2',
+  snack3: 'Ara Öğün 3',
 };
 
 export const mealTypeIcons: Record<MealType, string> = {
   breakfast: '🌅',
   lunch: '☀️',
   dinner: '🌙',
-  snack: '🍎',
+  snack1: '🍎',
+  snack2: '🥜',
+  snack3: '🍌',
 };

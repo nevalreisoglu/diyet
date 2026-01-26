@@ -15,7 +15,7 @@ import { useMealSchedules } from '@/hooks/useMealSchedules';
 import { MealType } from '@/types/nutrition';
 import { Loader2 } from 'lucide-react';
 
-const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack1', 'snack2', 'snack3'];
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -35,7 +35,7 @@ const Index = () => {
     getMealFoods,
   } = useNutritionData(user?.id);
 
-  const { schedules, getScheduleForMeal, refetch: refetchSchedules } = useMealSchedules(user?.id);
+  const { schedules, getScheduleForMeal, updateSchedule, clearSchedule, refetch: refetchSchedules } = useMealSchedules(user?.id);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -107,6 +107,8 @@ const Index = () => {
                 scheduledTime={getScheduleForMeal(mealType)}
                 onAddFood={() => handleOpenAddFood(mealType)}
                 onRemoveFood={(foodId) => removeFood(mealType, foodId)}
+                onUpdateTime={(time) => updateSchedule(mealType, time)}
+                onClearTime={() => clearSchedule(mealType)}
                 delay={index * 100}
               />
             ))}
