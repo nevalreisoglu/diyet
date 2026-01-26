@@ -5,7 +5,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export const useNutritionStore = () => {
   const [meals, setMeals] = useState<MealEntry[]>([]);
-  const [targetCalories] = useState(2000);
+  const [targetCalories] = useState(1500);
 
   const addFood = useCallback((mealType: MealType, food: Omit<FoodItem, 'id'>) => {
     const newFood: FoodItem = { ...food, id: generateId() };
