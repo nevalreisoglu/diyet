@@ -11,7 +11,7 @@ interface MealWithFoods {
 
 export const useNutritionData = (userId: string | undefined) => {
   const [meals, setMeals] = useState<MealWithFoods[]>([]);
-  const [targetCalories, setTargetCalories] = useState(2000);
+  const [targetCalories, setTargetCalories] = useState(1500);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
