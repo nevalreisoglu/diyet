@@ -1,8 +1,19 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Upload, FileText, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCustomFoods } from '@/hooks/useCustomFoods';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface PdfUploaderProps {
   userId: string | undefined;
@@ -11,7 +22,8 @@ interface PdfUploaderProps {
 
 export const PdfUploader = ({ userId, onSchedulesUpdated }: PdfUploaderProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { customFoods, loading, uploading, uploadPdf, deleteCustomFood } = useCustomFoods(userId, onSchedulesUpdated);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const { customFoods, loading, uploading, uploadPdf, deleteCustomFood, deleteAllCustomFoods } = useCustomFoods(userId, onSchedulesUpdated);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -22,6 +34,11 @@ export const PdfUploader = ({ userId, onSchedulesUpdated }: PdfUploaderProps) =>
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleDeleteAll = async () => {
+    await deleteAllCustomFoods();
+    setDeleteAllOpen(false);
   };
 
   return (
@@ -62,6 +79,28 @@ export const PdfUploader = ({ userId, onSchedulesUpdated }: PdfUploaderProps) =>
               </>
             )}
           </Button>
+          {customFoods.length > 0 && (
+            <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Tümünü Sil
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Tüm yiyecekleri silmek istediğinize emin misiniz?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Bu işlem geri alınamaz. PDF ile eklenen {customFoods.length} yiyecek kalıcı olarak silinecek.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>İptal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAll}>Sil</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 

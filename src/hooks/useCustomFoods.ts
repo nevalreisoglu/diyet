@@ -114,12 +114,39 @@ export const useCustomFoods = (userId: string | undefined, onSchedulesUpdated?: 
     }
   }, [toast, fetchCustomFoods]);
 
+  const deleteAllCustomFoods = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const { error } = await supabase
+        .from('custom_foods')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Tümü Silindi',
+        description: 'Tüm yiyecekler listeden kaldırıldı.',
+      });
+      fetchCustomFoods();
+    } catch (error) {
+      console.error('Error deleting all custom foods:', error);
+      toast({
+        title: 'Hata',
+        description: 'Yiyecekler silinirken bir hata oluştu.',
+        variant: 'destructive',
+      });
+    }
+  }, [userId, toast, fetchCustomFoods]);
+
   return {
     customFoods,
     loading,
     uploading,
     uploadPdf,
     deleteCustomFood,
+    deleteAllCustomFoods,
     refetch: fetchCustomFoods,
   };
 };
