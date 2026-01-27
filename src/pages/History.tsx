@@ -169,7 +169,7 @@ const History = () => {
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
                       {/* Meal sections with add buttons */}
-                      {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((mealType) => {
+                      {(['breakfast', 'lunch', 'dinner', 'snack1', 'snack2', 'snack3'] as MealType[]).map((mealType) => {
                         const mealData = day.meals.find((m) => m.type === mealType);
                         const hasFoods = mealData && mealData.foods.length > 0;
 
