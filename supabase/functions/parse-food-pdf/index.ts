@@ -78,18 +78,27 @@ serve(async (req) => {
 Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
 {
   "foods": [
-    {"name": "yiyecek adı", "calories": kalori_sayısı, "protein": protein_gram, "carbs": karbonhidrat_gram, "fat": yağ_gram}
+    {"name": "yiyecek adı", "calories": kalori_sayısı, "protein": protein_gram, "carbs": karbonhidrat_gram, "fat": yağ_gram, "mealType": "breakfast|lunch|dinner|snack1|snack2|snack3"}
   ],
   "mealSchedules": {
     "breakfast": "08:00",
     "lunch": "12:30",
     "dinner": "19:00",
-    "snack": "15:00"
+    "snack1": "10:00",
+    "snack2": "15:00",
+    "snack3": "21:00"
   }
 }
 
 Kurallar:
 - Her yiyecek için tahmini kalori ve besin değerlerini hesapla
+- Her yiyecek için hangi öğüne ait olduğunu mealType alanında belirt:
+  - Kahvaltı besinleri için "breakfast"
+  - Öğle yemeği besinleri için "lunch"
+  - Akşam yemeği besinleri için "dinner"
+  - 1. ara öğün besinleri için "snack1"
+  - 2. ara öğün besinleri için "snack2"
+  - 3. ara öğün besinleri için "snack3"
 - Öğün saatleri metinde varsa onları kullan, yoksa varsayılan değerleri kullan
 - Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et`
               },
@@ -176,6 +185,7 @@ Kurallar:
         protein: food.protein || null,
         carbs: food.carbs || null,
         fat: food.fat || null,
+        meal_type: food.mealType || null,
       }));
 
       const { error: insertError } = await supabaseAdmin

@@ -25,6 +25,7 @@ interface CustomFood {
   protein: number | null;
   carbs: number | null;
   fat: number | null;
+  meal_type: string | null;
 }
 
 const defaultQuickFoods = [
@@ -160,32 +161,66 @@ export const AddFoodDialog = ({
             </TabsList>
             
             <TabsContent value="custom" className="mt-0">
-              <Label className="text-muted-foreground text-sm">PDF'den yüklenen yiyecekler</Label>
+              <Label className="text-muted-foreground text-sm">Bu öğün için yiyecekler</Label>
               <ScrollArea className="h-32 mt-2">
                 {loadingCustomFoods ? (
                   <div className="flex items-center justify-center h-24">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
-                ) : customFoods.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 pr-4">
-                    {customFoods.map((food) => (
-                      <button
-                        key={food.id}
-                        onClick={() => handleQuickAdd({ name: food.name, calories: food.calories })}
-                        className="px-3 py-1.5 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors"
-                        title={`${food.calories} kcal`}
-                      >
-                        {food.name}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-24 text-muted-foreground text-sm">
-                    <FileText className="h-6 w-6 mb-2 opacity-50" />
-                    <p>Henüz yiyecek yüklemediniz</p>
-                    <p className="text-xs">Ana sayfadan PDF yükleyin</p>
-                  </div>
-                )}
+                ) : (() => {
+                  // Filter foods by meal type
+                  const filteredFoods = customFoods.filter(
+                    (food) => food.meal_type === mealType || food.meal_type === null
+                  );
+                  const mealSpecificFoods = customFoods.filter(
+                    (food) => food.meal_type === mealType
+                  );
+                  const unassignedFoods = customFoods.filter(
+                    (food) => food.meal_type === null
+                  );
+                  
+                  return mealSpecificFoods.length > 0 || unassignedFoods.length > 0 ? (
+                    <div className="space-y-3 pr-4">
+                      {mealSpecificFoods.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {mealSpecificFoods.map((food) => (
+                            <button
+                              key={food.id}
+                              onClick={() => handleQuickAdd({ name: food.name, calories: food.calories })}
+                              className="px-3 py-1.5 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors"
+                              title={`${food.calories} kcal`}
+                            >
+                              {food.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {unassignedFoods.length > 0 && mealSpecificFoods.length > 0 && (
+                        <div className="text-xs text-muted-foreground pt-2 border-t border-border">Diğer yiyecekler</div>
+                      )}
+                      {unassignedFoods.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {unassignedFoods.map((food) => (
+                            <button
+                              key={food.id}
+                              onClick={() => handleQuickAdd({ name: food.name, calories: food.calories })}
+                              className="px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-full transition-colors"
+                              title={`${food.calories} kcal`}
+                            >
+                              {food.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-24 text-muted-foreground text-sm">
+                      <FileText className="h-6 w-6 mb-2 opacity-50" />
+                      <p>Bu öğün için yiyecek yok</p>
+                      <p className="text-xs">Ana sayfadan PDF yükleyin</p>
+                    </div>
+                  );
+                })()}
               </ScrollArea>
             </TabsContent>
             
