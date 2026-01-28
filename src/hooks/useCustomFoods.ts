@@ -9,6 +9,7 @@ interface CustomFood {
   protein: number | null;
   carbs: number | null;
   fat: number | null;
+  meal_type: string | null;
 }
 
 export const useCustomFoods = (userId: string | undefined, onSchedulesUpdated?: () => void) => {
