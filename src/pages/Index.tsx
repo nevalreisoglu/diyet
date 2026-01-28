@@ -12,6 +12,7 @@ import { ExerciseTracker } from '@/components/ExerciseTracker';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
 import { useMealSchedules } from '@/hooks/useMealSchedules';
+import { useCustomFoods } from '@/hooks/useCustomFoods';
 import { MealType } from '@/types/nutrition';
 import { Loader2 } from 'lucide-react';
 
@@ -36,6 +37,7 @@ const Index = () => {
   } = useNutritionData(user?.id);
 
   const { schedules, getScheduleForMeal, updateSchedule, clearSchedule, refetch: refetchSchedules } = useMealSchedules(user?.id);
+  const { customFoods, refetch: refetchCustomFoods } = useCustomFoods(user?.id, refetchSchedules);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -104,6 +106,7 @@ const Index = () => {
                 mealType={mealType}
                 calories={getMealCalories(mealType)}
                 foods={getMealFoods(mealType)}
+                customFoods={customFoods.filter(f => f.meal_type === mealType)}
                 scheduledTime={getScheduleForMeal(mealType)}
                 onAddFood={() => handleOpenAddFood(mealType)}
                 onRemoveFood={(foodId) => removeFood(mealType, foodId)}
@@ -118,7 +121,7 @@ const Index = () => {
         {/* PDF Uploader - Full Width */}
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-foreground">Yiyecek Listem</h2>
-          <PdfUploader userId={user?.id} onSchedulesUpdated={refetchSchedules} />
+          <PdfUploader userId={user?.id} onSchedulesUpdated={() => { refetchSchedules(); refetchCustomFoods(); }} />
         </section>
       </main>
 
