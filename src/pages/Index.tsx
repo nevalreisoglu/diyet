@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { CalorieProgress } from '@/components/CalorieProgress';
@@ -9,12 +9,18 @@ import { WaterTracker } from '@/components/WaterTracker';
 import { PdfUploader } from '@/components/PdfUploader';
 import { BeverageTracker } from '@/components/BeverageTracker';
 import { ExerciseTracker } from '@/components/ExerciseTracker';
+import { AchievementBadges } from '@/components/AchievementBadges';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
 import { useMealSchedules } from '@/hooks/useMealSchedules';
 import { useCustomFoods } from '@/hooks/useCustomFoods';
+import { useWaterData } from '@/hooks/useWaterData';
+import { useBeverageData } from '@/hooks/useBeverageData';
+import { useExerciseData } from '@/hooks/useExerciseData';
+import { useAchievements, AchievementType } from '@/hooks/useAchievements';
 import { MealType } from '@/types/nutrition';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack1', 'snack2', 'snack3'];
 
@@ -39,6 +45,51 @@ const Index = () => {
   const { schedules, getScheduleForMeal, updateSchedule, clearSchedule, refetch: refetchSchedules } = useMealSchedules(user?.id);
   const { customFoods, refetch: refetchCustomFoods } = useCustomFoods(user?.id, refetchSchedules);
 
+  // Achievement tracking hooks
+  const { waterIntake, targetWater } = useWaterData(user?.id);
+  const { beverages } = useBeverageData(user?.id);
+  const { duration: exerciseMinutes } = useExerciseData(user?.id);
+  const { todayAchievements, checkAndAwardAchievements } = useAchievements(user?.id);
+
+  // Calculate totalCalories early for use in achievements
+  const totalCalories = getTotalCalories();
+  const earnedAchievementTypes = todayAchievements.map(a => a.achievement_type as AchievementType);
+
+  // Check achievements when relevant data changes
+  const checkAchievements = useCallback(async () => {
+    if (!user?.id || dataLoading) return;
+
+    const currentEarned = todayAchievements.map(a => a.achievement_type);
+
+    const newAchievements = await checkAndAwardAchievements({
+      exerciseMinutes,
+      currentCalories: totalCalories,
+      targetCalories,
+      waterIntake,
+      targetWater,
+      coffeeCount: beverages.coffee,
+      teaCount: beverages.tea,
+    });
+
+    // Show toast for new achievements
+    if (newAchievements && newAchievements.length > 0) {
+      const achievementLabels: Record<AchievementType, string> = {
+        exercise_goal: '🏆 Spor Yıldızı',
+        calorie_goal: '🎯 Kalori Ustası',
+        water_goal: '💧 Su Kahramanı',
+        low_caffeine: '☕ Kafein Kontrolcüsü',
+      };
+      
+      newAchievements.forEach((type) => {
+        toast.success(`Tebrikler! ${achievementLabels[type]} rozetini kazandınız!`);
+      });
+    }
+  }, [user?.id, dataLoading, exerciseMinutes, totalCalories, targetCalories, waterIntake, targetWater, beverages.coffee, beverages.tea, checkAndAwardAchievements, todayAchievements]);
+
+  useEffect(() => {
+    checkAchievements();
+  }, [checkAchievements]);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
@@ -53,8 +104,6 @@ const Index = () => {
   const handleAddFood = (mealType: MealType, food: { name: string; calories: number }) => {
     addFood(mealType, food);
   };
-
-  const totalCalories = getTotalCalories();
 
   if (authLoading || dataLoading) {
     return (
@@ -85,6 +134,9 @@ const Index = () => {
           mealsLogged={meals.length}
           targetCalories={targetCalories}
         />
+
+        {/* Achievements Section */}
+        <AchievementBadges earnedTypes={earnedAchievementTypes} />
 
         {/* Trackers Section */}
         <section className="space-y-4">
