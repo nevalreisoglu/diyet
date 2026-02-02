@@ -10,6 +10,7 @@ import { PdfUploader } from '@/components/PdfUploader';
 import { BeverageTracker } from '@/components/BeverageTracker';
 import { ExerciseTracker } from '@/components/ExerciseTracker';
 import { AchievementBadges } from '@/components/AchievementBadges';
+import { WeightForecast } from '@/components/WeightForecast';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
 import { useMealSchedules } from '@/hooks/useMealSchedules';
@@ -137,6 +138,12 @@ const Index = () => {
 
         {/* Achievements Section */}
         <AchievementBadges earnedTypes={earnedAchievementTypes} />
+
+        {/* AI Weight Forecast Section */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">AI Kilo Tahmini</h2>
+          <WeightForecast userId={user?.id} />
+        </section>
 
         {/* Trackers Section */}
         <section className="space-y-4">
