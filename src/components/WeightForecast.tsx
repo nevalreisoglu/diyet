@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useWeightForecast, WeightForecast as ForecastType } from '@/hooks/useWeightForecast';
+import { Progress } from '@/components/ui/progress';
+import { useWeightForecast, WeightForecast as ForecastType, GoalProgress } from '@/hooks/useWeightForecast';
 import { 
   TrendingDown, 
   TrendingUp, 
@@ -14,7 +15,11 @@ import {
   Target,
   AlertCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Scale,
+  Clock,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -69,6 +74,71 @@ const ForecastCard = ({
     <DirectionBadge direction={forecast.direction} kg={forecast.kg} />
   </div>
 );
+
+const GoalProgressCard = ({ goalProgress }: { goalProgress: GoalProgress }) => {
+  const weightDiff = goalProgress.currentWeight - goalProgress.targetWeight;
+  const isLosing = weightDiff > 0;
+  const progressPercent = Math.min(100, Math.max(0, 
+    isLosing 
+      ? ((goalProgress.currentWeight - goalProgress.targetWeight) / goalProgress.currentWeight) * 100
+      : ((goalProgress.targetWeight - goalProgress.currentWeight) / goalProgress.targetWeight) * 100
+  ));
+  
+  const formatWeeks = (weeks: number | null) => {
+    if (weeks === null) return 'Hesaplanamadı';
+    if (weeks <= 4) return `${weeks} hafta`;
+    const months = Math.round(weeks / 4.33);
+    return months === 1 ? '~1 ay' : `~${months} ay`;
+  };
+
+  return (
+    <div className="p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Scale className="h-5 w-5 text-primary" />
+          <span className="font-medium">Hedef Takibi</span>
+        </div>
+        {goalProgress.isOnTrack ? (
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Yolda
+          </Badge>
+        ) : (
+          <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+            <XCircle className="h-3 w-3 mr-1" />
+            Hedefe Uymayan
+          </Badge>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <p className="text-muted-foreground">Mevcut</p>
+          <p className="text-lg font-semibold">{goalProgress.currentWeight} kg</p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Hedef</p>
+          <p className="text-lg font-semibold">{goalProgress.targetWeight} kg</p>
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>{isLosing ? 'Verilecek' : 'Alınacak'}: {Math.abs(weightDiff).toFixed(1)} kg</span>
+          <span>{progressPercent.toFixed(0)}%</span>
+        </div>
+        <Progress value={100 - progressPercent} className="h-2" />
+      </div>
+
+      {goalProgress.estimatedWeeksToGoal !== null && (
+        <div className="flex items-center gap-2 text-sm">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span>Tahmini süre: <strong>{formatWeeks(goalProgress.estimatedWeeksToGoal)}</strong></span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const WeightForecast = ({ userId }: WeightForecastProps) => {
   const { forecast, loading, error, dataPointCount, fetchForecast } = useWeightForecast(userId);
@@ -164,6 +234,11 @@ export const WeightForecast = ({ userId }: WeightForecastProps) => {
         <CardDescription>{dataPointCount} günlük veriye dayalı tahmin</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Goal Progress */}
+        {forecast.goalProgress && (
+          <GoalProgressCard goalProgress={forecast.goalProgress} />
+        )}
+
         {/* Forecast Cards */}
         <div className="space-y-2">
           <ForecastCard title="1 Hafta" forecast={forecast.weeklyForecast} />

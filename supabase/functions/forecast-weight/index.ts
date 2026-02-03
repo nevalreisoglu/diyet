@@ -19,6 +19,8 @@ interface HistoryData {
   userProfile: {
     targetCalories: number;
     targetWaterMl: number;
+    currentWeightKg: number | null;
+    targetWeightKg: number | null;
   };
 }
 
@@ -56,6 +58,10 @@ serve(async (req) => {
       ? Math.round(dataSummary.reduce((sum, d) => sum + d.waterPercentage, 0) / dataSummary.length)
       : 0;
 
+    const currentWeight = historyData.userProfile.currentWeightKg;
+    const targetWeight = historyData.userProfile.targetWeightKg;
+    const hasWeightGoal = currentWeight && targetWeight;
+
     const systemPrompt = `Sen bir beslenme ve fitness uzmanısın. Kullanıcının geçmiş verilerini analiz ederek kilo değişim tahmini yapacaksın.
 
 Temel kurallar:
@@ -64,6 +70,11 @@ Temel kurallar:
 - Egzersiz dakikası başına ortalama 5-8 kcal yakım
 - Su tüketimi metabolizmayı etkiler
 - Kafein metabolizmayı hafifçe artırır
+${hasWeightGoal ? `
+Kullanıcının mevcut kilosu: ${currentWeight} kg
+Kullanıcının hedef kilosu: ${targetWeight} kg
+Kilo farkı: ${Math.abs(currentWeight - targetWeight).toFixed(1)} kg ${currentWeight > targetWeight ? 'vermesi' : 'alması'} gerekiyor.
+Hedefe ulaşma süresini de hesapla.` : ''}
 
 Yanıtını SADECE JSON formatında ver, başka hiçbir şey yazma:
 {
@@ -73,7 +84,8 @@ Yanıtını SADECE JSON formatında ver, başka hiçbir şey yazma:
   "insights": ["string", "string", "string"],
   "recommendations": ["string", "string", "string"],
   "confidenceLevel": "low" | "medium" | "high",
-  "summary": "string"
+  "summary": "string",
+  "goalProgress": ${hasWeightGoal ? '{ "currentWeight": number, "targetWeight": number, "estimatedWeeksToGoal": number | null, "isOnTrack": boolean }' : 'null'}
 }`;
 
     const userMessage = `Geçmiş ${dataSummary.length} günlük veri:
@@ -82,11 +94,13 @@ Yanıtını SADECE JSON formatında ver, başka hiçbir şey yazma:
 - Ortalama su tüketimi hedef yüzdesi: ${avgWaterPercentage}%
 - Hedef kalori: ${historyData.userProfile.targetCalories} kcal
 - Hedef su: ${historyData.userProfile.targetWaterMl} ml
+${hasWeightGoal ? `- Mevcut kilo: ${currentWeight} kg
+- Hedef kilo: ${targetWeight} kg` : ''}
 
 Detaylı günlük veriler:
 ${JSON.stringify(dataSummary.slice(0, 30), null, 2)}
 
-Bu verilere dayanarak 1 hafta, 1 ay ve 3 aylık kilo değişim tahmini yap. Tahminler kilogram cinsinden olsun. Ayrıca içgörüler ve öneriler ver.`;
+Bu verilere dayanarak 1 hafta, 1 ay ve 3 aylık kilo değişim tahmini yap. Tahminler kilogram cinsinden olsun. ${hasWeightGoal ? 'Hedefe ulaşma süresini hafta cinsinden hesapla ve mevcut tempoya göre hedefe doğru ilerleyip ilerlemediğini belirt.' : ''} Ayrıca içgörüler ve öneriler ver.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -154,6 +168,33 @@ Bu verilere dayanarak 1 hafta, 1 ay ve 3 aylık kilo değişim tahmini yap. Tahm
       const netMonthly = (monthlyCalorieChange - (exerciseCaloriesBurned * 30)) / 7700;
       const netThreeMonth = (threeMonthCalorieChange - (exerciseCaloriesBurned * 90)) / 7700;
 
+      // Calculate goal progress if weight data is available
+      let goalProgress = null;
+      if (hasWeightGoal) {
+        const weeklyChange = netWeekly;
+        const weightDiff = currentWeight - targetWeight;
+        const needsLoss = weightDiff > 0;
+        
+        let estimatedWeeksToGoal: number | null = null;
+        let isOnTrack = false;
+        
+        if (Math.abs(weeklyChange) > 0.01) {
+          if ((needsLoss && weeklyChange < 0) || (!needsLoss && weeklyChange > 0)) {
+            estimatedWeeksToGoal = Math.ceil(Math.abs(weightDiff) / Math.abs(weeklyChange));
+            isOnTrack = true;
+          } else {
+            isOnTrack = false;
+          }
+        }
+        
+        goalProgress = {
+          currentWeight,
+          targetWeight,
+          estimatedWeeksToGoal,
+          isOnTrack
+        };
+      }
+
       forecast = {
         weeklyForecast: { 
           kg: Math.abs(Number(netWeekly.toFixed(2))), 
@@ -178,7 +219,8 @@ Bu verilere dayanarak 1 hafta, 1 ay ve 3 aylık kilo değişim tahmini yap. Tahm
           avgWaterPercentage < 80 ? "Su tüketiminizi artırın" : "Su tüketiminiz yeterli"
         ],
         confidenceLevel: dataSummary.length >= 14 ? "high" : dataSummary.length >= 7 ? "medium" : "low",
-        summary: `${dataSummary.length} günlük veriye dayalı hesaplama`
+        summary: `${dataSummary.length} günlük veriye dayalı hesaplama`,
+        goalProgress
       };
     }
 

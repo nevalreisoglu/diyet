@@ -223,28 +223,34 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          current_weight_kg: number | null
           display_name: string | null
           id: string
           target_calories: number | null
           target_water_ml: number | null
+          target_weight_kg: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          current_weight_kg?: number | null
           display_name?: string | null
           id?: string
           target_calories?: number | null
           target_water_ml?: number | null
+          target_weight_kg?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          current_weight_kg?: number | null
           display_name?: string | null
           id?: string
           target_calories?: number | null
           target_water_ml?: number | null
+          target_weight_kg?: number | null
           updated_at?: string
           user_id?: string
         }
