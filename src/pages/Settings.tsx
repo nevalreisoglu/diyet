@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Target, Droplets } from 'lucide-react';
+import { Loader2, Save, Target, Droplets, Scale } from 'lucide-react';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -18,6 +18,8 @@ const Settings = () => {
   const [targetCalories, setTargetCalories] = useState(1500);
   const [targetWaterMl, setTargetWaterMl] = useState(2000);
   const [displayName, setDisplayName] = useState('');
+  const [currentWeight, setCurrentWeight] = useState<number | null>(null);
+  const [targetWeight, setTargetWeight] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -34,7 +36,7 @@ const Settings = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('target_calories, target_water_ml, display_name')
+          .select('target_calories, target_water_ml, display_name, current_weight_kg, target_weight_kg')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -44,6 +46,8 @@ const Settings = () => {
           setTargetCalories(data.target_calories ?? 1500);
           setTargetWaterMl(data.target_water_ml ?? 2000);
           setDisplayName(data.display_name ?? '');
+          setCurrentWeight(data.current_weight_kg ?? null);
+          setTargetWeight(data.target_weight_kg ?? null);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -66,6 +70,8 @@ const Settings = () => {
           target_calories: targetCalories,
           target_water_ml: targetWaterMl,
           display_name: displayName || null,
+          current_weight_kg: currentWeight,
+          target_weight_kg: targetWeight,
         })
         .eq('user_id', user.id);
 
@@ -159,6 +165,55 @@ const Settings = () => {
               />
               <p className="text-xs text-muted-foreground">
                 Günlük içmek istediğiniz su miktarı (ml cinsinden)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Scale className="h-5 w-5 text-primary" />
+              Kilo Bilgileri
+            </CardTitle>
+            <CardDescription>
+              Mevcut kilonuzu ve hedef kilonuzu girin (AI tahminleri için kullanılır)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="currentWeight">Mevcut Kilo (kg)</Label>
+              <Input
+                id="currentWeight"
+                type="number"
+                min={30}
+                max={300}
+                step={0.1}
+                placeholder="Örn: 75.5"
+                value={currentWeight ?? ''}
+                onChange={(e) => setCurrentWeight(e.target.value ? parseFloat(e.target.value) : null)}
+                className="max-w-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Şu anki kilonuz
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="targetWeight">Hedef Kilo (kg)</Label>
+              <Input
+                id="targetWeight"
+                type="number"
+                min={30}
+                max={300}
+                step={0.1}
+                placeholder="Örn: 70.0"
+                value={targetWeight ?? ''}
+                onChange={(e) => setTargetWeight(e.target.value ? parseFloat(e.target.value) : null)}
+                className="max-w-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ulaşmak istediğiniz kilo
               </p>
             </div>
           </CardContent>
