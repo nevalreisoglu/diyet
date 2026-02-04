@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Target, Droplets, Scale } from 'lucide-react';
+import { Loader2, Save, Target, Droplets, Scale, Calendar } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const Settings = () => {
   const [displayName, setDisplayName] = useState('');
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [targetWeight, setTargetWeight] = useState<number | null>(null);
+  const [weightGoalWeeks, setWeightGoalWeeks] = useState(12);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -36,7 +38,7 @@ const Settings = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('target_calories, target_water_ml, display_name, current_weight_kg, target_weight_kg')
+          .select('target_calories, target_water_ml, display_name, current_weight_kg, target_weight_kg, weight_goal_weeks')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -48,6 +50,7 @@ const Settings = () => {
           setDisplayName(data.display_name ?? '');
           setCurrentWeight(data.current_weight_kg ?? null);
           setTargetWeight(data.target_weight_kg ?? null);
+          setWeightGoalWeeks(data.weight_goal_weeks ?? 12);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -72,6 +75,7 @@ const Settings = () => {
           display_name: displayName || null,
           current_weight_kg: currentWeight,
           target_weight_kg: targetWeight,
+          weight_goal_weeks: weightGoalWeeks,
         })
         .eq('user_id', user.id);
 
@@ -214,6 +218,32 @@ const Settings = () => {
               />
               <p className="text-xs text-muted-foreground">
                 Ulaşmak istediğiniz kilo
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="weightGoalWeeks" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                Hedef Süre
+              </Label>
+              <Select
+                value={weightGoalWeeks.toString()}
+                onValueChange={(value) => setWeightGoalWeeks(parseInt(value))}
+              >
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="Süre seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="4">1 Ay (4 hafta)</SelectItem>
+                  <SelectItem value="8">2 Ay (8 hafta)</SelectItem>
+                  <SelectItem value="12">3 Ay (12 hafta)</SelectItem>
+                  <SelectItem value="16">4 Ay (16 hafta)</SelectItem>
+                  <SelectItem value="24">6 Ay (24 hafta)</SelectItem>
+                  <SelectItem value="52">1 Yıl (52 hafta)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Hedefinize ulaşmak istediğiniz süre (AI önerileri için kullanılır)
               </p>
             </div>
           </CardContent>

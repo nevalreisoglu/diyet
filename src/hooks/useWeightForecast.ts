@@ -11,6 +11,8 @@ export interface GoalProgress {
   targetWeight: number;
   estimatedWeeksToGoal: number | null;
   isOnTrack: boolean;
+  weeklyRequired?: number;
+  dailyCalorieChange?: number;
 }
 
 export interface WeightForecast {
@@ -40,6 +42,7 @@ interface HistoryData {
     targetWaterMl: number;
     currentWeightKg: number | null;
     targetWeightKg: number | null;
+    weightGoalWeeks: number;
   };
 }
 
@@ -67,7 +70,7 @@ export const useWeightForecast = (userId: string | undefined) => {
       // Fetch profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('target_calories, target_water_ml, current_weight_kg, target_weight_kg')
+        .select('target_calories, target_water_ml, current_weight_kg, target_weight_kg, weight_goal_weeks')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -75,6 +78,7 @@ export const useWeightForecast = (userId: string | undefined) => {
       const targetWaterMl = profile?.target_water_ml || 2000;
       const currentWeightKg = profile?.current_weight_kg || null;
       const targetWeightKg = profile?.target_weight_kg || null;
+      const weightGoalWeeks = profile?.weight_goal_weeks || 12;
 
       // Fetch all data in parallel
       const [mealsResult, waterResult, exerciseResult, beverageResult] = await Promise.all([
@@ -190,6 +194,7 @@ export const useWeightForecast = (userId: string | undefined) => {
           targetWaterMl,
           currentWeightKg,
           targetWeightKg,
+          weightGoalWeeks,
         },
       };
 
