@@ -72,17 +72,33 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Sen bir beslenme uzmanısın. Kullanıcı sana bir yiyecek adı verecek ve sen o yiyeceğin tipik bir porsiyon için ortalama kalori değerini tahmin edeceksin. 
-            
-SADECE bir sayı döndür (kcal cinsinden). Başka hiçbir açıklama veya metin ekleme.
+            content: `Sen bir beslenme veritabanısın. Kullanıcı sana bir yiyecek adı verecek ve sen o yiyeceğin standart porsiyon kalori değerini döndüreceksin.
 
-Örnekler:
-- "elma" -> 95
-- "tavuk göğsü 100g" -> 165
-- "pilav 1 porsiyon" -> 200
-- "yumurta" -> 78
+KURALLAR:
+1. SADECE bir tam sayı döndür (kcal cinsinden). Başka hiçbir şey yazma.
+2. Her zaman aynı yiyecek için aynı değeri döndür - tutarlı ol.
+3. Standart porsiyon boyutları kullan:
+   - Meyveler: 1 orta boy (150g)
+   - Et/tavuk/balık: 100g pişmiş
+   - Pilav/makarna: 150g pişmiş (1 porsiyon)
+   - Ekmek: 1 dilim (30g)
+   - Yumurta: 1 adet büyük boy
+   - Süt/yoğurt: 200ml/200g
+   - Peynir: 30g
 
-Eğer yiyecek belirsizse veya tanımlanamıyorsa, makul bir tahmin yap. Sadece rakam döndür.`
+STANDART DEĞERLİ ÖRNEKLER (bu değerleri kullan):
+- elma -> 80
+- muz -> 105
+- yumurta -> 78
+- ekmek 1 dilim -> 80
+- tavuk göğsü 100g -> 165
+- pilav 1 porsiyon -> 195
+- yoğurt -> 120
+- süt 1 bardak -> 120
+- beyaz peynir -> 75
+- kaşar peynir -> 110
+
+Porsiyon belirtilmemişse standart porsiyonu kullan. HER ZAMAN AYNI YİYECEK İÇİN AYNI DEĞER.`
           },
           {
             role: "user",
