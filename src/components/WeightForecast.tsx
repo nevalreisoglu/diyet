@@ -19,7 +19,8 @@ import {
   Scale,
   Clock,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Zap
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -134,6 +135,19 @@ const GoalProgressCard = ({ goalProgress }: { goalProgress: GoalProgress }) => {
         <div className="flex items-center gap-2 text-sm">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <span>Tahmini süre: <strong>{formatWeeks(goalProgress.estimatedWeeksToGoal)}</strong></span>
+        </div>
+      )}
+
+      {goalProgress.weeklyRequired !== undefined && goalProgress.dailyCalorieChange !== undefined && (
+        <div className="pt-2 border-t border-primary/20 space-y-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Target className="h-3 w-3" />
+            <span>Haftalık gerekli: <strong className="text-foreground">{Math.abs(goalProgress.weeklyRequired).toFixed(2)} kg/{isLosing ? 'kayıp' : 'artış'}</strong></span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Zap className="h-3 w-3" />
+            <span>Günlük kalori {isLosing ? 'açığı' : 'fazlası'}: <strong className="text-foreground">{Math.abs(goalProgress.dailyCalorieChange).toFixed(0)} kcal</strong></span>
+          </div>
         </div>
       )}
     </div>

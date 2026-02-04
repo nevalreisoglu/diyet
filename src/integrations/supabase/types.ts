@@ -231,6 +231,7 @@ export type Database = {
           target_weight_kg: number | null
           updated_at: string
           user_id: string
+          weight_goal_weeks: number | null
         }
         Insert: {
           created_at?: string
@@ -242,6 +243,7 @@ export type Database = {
           target_weight_kg?: number | null
           updated_at?: string
           user_id: string
+          weight_goal_weeks?: number | null
         }
         Update: {
           created_at?: string
@@ -253,6 +255,7 @@ export type Database = {
           target_weight_kg?: number | null
           updated_at?: string
           user_id?: string
+          weight_goal_weeks?: number | null
         }
         Relationships: []
       }
