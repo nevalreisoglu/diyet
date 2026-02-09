@@ -6,10 +6,11 @@ import { useHistoryData } from '@/hooks/useHistoryData';
 import { useHistoryMutations } from '@/hooks/useHistoryMutations';
 import { WeeklyCharts } from '@/components/WeeklyCharts';
 import { AddFoodDialog } from '@/components/AddFoodDialog';
-import { Loader2, ChevronDown, ChevronUp, Droplets, Flame, Dumbbell, ArrowLeft, Plus, Minus, X } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronUp, Droplets, Flame, Dumbbell, ArrowLeft, Plus, Minus, X, Download } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { mealTypeLabels, mealTypeIcons, MealType } from '@/types/nutrition';
+import { exportHistoryToExcel } from '@/utils/exportToExcel';
 
 const History = () => {
   const navigate = useNavigate();
@@ -78,19 +79,31 @@ const History = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container max-w-2xl mx-auto px-4 py-6 space-y-4">
-        <div className="flex items-center gap-3 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            className="h-9 w-9 rounded-xl"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Geçmiş</h2>
-            <p className="text-sm text-muted-foreground">Son 14 günün detaylı görünümü</p>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="h-9 w-9 rounded-xl"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Geçmiş</h2>
+              <p className="text-sm text-muted-foreground">Son 14 günün detaylı görünümü</p>
+            </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportHistoryToExcel(history)}
+            disabled={loading || history.length === 0}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Excel</span>
+          </Button>
         </div>
 
         {loading ? (
