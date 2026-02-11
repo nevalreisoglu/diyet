@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { useWeightForecast, WeightForecast as ForecastType, GoalProgress, RuleBasedForecast } from '@/hooks/useWeightForecast';
+import { useWeightForecast, WeightForecast as ForecastType, GoalProgress, RuleBasedForecast, ModelInfo } from '@/hooks/useWeightForecast';
 import { 
   TrendingDown, 
   TrendingUp, 
@@ -20,7 +20,10 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  Zap
+  Zap,
+  BarChart3,
+  Activity,
+  Info
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -155,7 +158,7 @@ const GoalProgressCard = ({ goalProgress }: { goalProgress: GoalProgress }) => {
 };
 
 export const WeightForecast = ({ userId }: WeightForecastProps) => {
-  const { forecast, ruleBasedForecast, loading, error, dataPointCount, fetchForecast } = useWeightForecast(userId);
+  const { forecast, ruleBasedForecast, modelInfo, loading, error, dataPointCount, fetchForecast } = useWeightForecast(userId);
   const [isOpen, setIsOpen] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -326,6 +329,93 @@ export const WeightForecast = ({ userId }: WeightForecastProps) => {
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-2">
+            {/* Model Statistics */}
+            {modelInfo && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Model İstatistikleri</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-lg bg-muted/50 space-y-1">
+                    <p className="text-xs text-muted-foreground">R² (Açıklayıcılık)</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold">{(modelInfo.r2 * 100).toFixed(1)}%</p>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        {modelInfo.r2 > 0.5 ? 'Güçlü' : modelInfo.r2 > 0.3 ? 'Orta' : 'Zayıf'}
+                      </Badge>
+                    </div>
+                    <Progress value={modelInfo.r2 * 100} className="h-1" />
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-muted/50 space-y-1">
+                    <p className="text-xs text-muted-foreground">Trend Eğimi</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold">{modelInfo.trendSlope > 0 ? '+' : ''}{modelInfo.trendSlope.toFixed(1)} kcal/gün</p>
+                      {modelInfo.trendSlope > 5 ? (
+                        <TrendingUp className="h-3.5 w-3.5 text-orange-500" />
+                      ) : modelInfo.trendSlope < -5 ? (
+                        <TrendingDown className="h-3.5 w-3.5 text-green-500" />
+                      ) : (
+                        <Minus className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-muted/50 space-y-1">
+                    <p className="text-xs text-muted-foreground">EWMA Momentum</p>
+                    <p className="text-sm font-semibold">{modelInfo.ewmaLatest > 0 ? '+' : ''}{modelInfo.ewmaLatest} kcal</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {modelInfo.ewmaLatest > 100 ? 'Belirgin fazla' : modelInfo.ewmaLatest < -100 ? 'Belirgin açık' : 'Dengede'}
+                    </p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-muted/50 space-y-1">
+                    <p className="text-xs text-muted-foreground">Model Tipi</p>
+                    <p className="text-sm font-semibold">
+                      {modelInfo.type === 'predictive_blend' ? 'Hibrit Blend' : 'Fallback'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Regresyon + EWMA</p>
+                  </div>
+                </div>
+                <div className="p-2 rounded bg-muted/30 flex items-start gap-2">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    R², modelin verilerinizi ne kadar iyi açıkladığını gösterir. Trend eğimi günlük enerji dengesinin artış/azalış yönünü, EWMA ise son günlerdeki kısa vadeli momentumu yansıtır.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Difference Analysis */}
+            {ruleBasedForecast && forecast && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Activity className="h-4 w-4" />
+                  <span>Model Fark Analizi</span>
+                </div>
+                <div className="space-y-1.5">
+                  {[
+                    { label: '1 Hafta', pred: forecast.weeklyForecast, rule: ruleBasedForecast.weeklyForecast },
+                    { label: '1 Ay', pred: forecast.monthlyForecast, rule: ruleBasedForecast.monthlyForecast },
+                    { label: '3 Ay', pred: forecast.threeMonthForecast, rule: ruleBasedForecast.threeMonthForecast },
+                  ].map((row) => {
+                    const predKg = row.pred.direction === 'loss' ? -row.pred.kg : row.pred.direction === 'gain' ? row.pred.kg : 0;
+                    const ruleKg = row.rule.direction === 'loss' ? -row.rule.kg : row.rule.direction === 'gain' ? row.rule.kg : 0;
+                    const diff = predKg - ruleKg;
+                    return (
+                      <div key={row.label} className="flex items-center justify-between p-2 rounded bg-muted/30 text-sm">
+                        <span className="font-medium">{row.label}</span>
+                        <span className={`font-semibold ${Math.abs(diff) < 0.05 ? 'text-muted-foreground' : diff > 0 ? 'text-orange-500' : 'text-green-500'}`}>
+                          {diff > 0 ? '+' : ''}{diff.toFixed(2)} kg fark
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Pozitif fark: Prediktif model, kural tabanlıya göre daha fazla kilo artışı öngörüyor. Negatif fark: Daha fazla kayıp öngörüyor.
+                </p>
+              </div>
+            )}
+
             {/* Insights */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
