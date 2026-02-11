@@ -188,10 +188,23 @@ serve(async (req) => {
       },
     };
 
-    // ─── Model-based projections ───
+    // ─── Model-based projections (Predictive) ───
     const weeklyProjection = projectWeight(netBalances, 7);
     const monthlyProjection = projectWeight(netBalances, 30);
     const threeMonthProjection = projectWeight(netBalances, 90);
+
+    // ─── Rule-based projections (Simple 7700 kcal = 1 kg) ───
+    const avgNetBalance = netBalances.reduce((a, b) => a + b, 0) / netBalances.length;
+    function ruleBasedProject(days: number): { kg: number; direction: "loss" | "gain" | "stable" } {
+      const totalBalance = avgNetBalance * days;
+      const kgChange = totalBalance / 7700;
+      const absKg = Math.abs(Number(kgChange.toFixed(2)));
+      const direction = kgChange > 0.05 ? "gain" : kgChange < -0.05 ? "loss" : "stable";
+      return { kg: absKg, direction };
+    }
+    const ruleWeekly = ruleBasedProject(7);
+    const ruleMonthly = ruleBasedProject(30);
+    const ruleThreeMonth = ruleBasedProject(90);
 
     // ─── Confidence level based on data quality ───
     const confidenceLevel: "low" | "medium" | "high" =
@@ -383,6 +396,12 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
 
     return new Response(JSON.stringify({
       forecast,
+      ruleBasedForecast: {
+        weeklyForecast: ruleWeekly,
+        monthlyForecast: ruleMonthly,
+        threeMonthForecast: ruleThreeMonth,
+        avgDailyBalance: Math.round(avgNetBalance),
+      },
       dataPointCount: sorted.length,
       modelInfo: {
         type: "predictive_blend",
