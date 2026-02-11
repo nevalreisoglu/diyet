@@ -6,6 +6,13 @@ interface ForecastResult {
   direction: 'loss' | 'gain' | 'stable';
 }
 
+export interface RuleBasedForecast {
+  weeklyForecast: ForecastResult;
+  monthlyForecast: ForecastResult;
+  threeMonthForecast: ForecastResult;
+  avgDailyBalance: number;
+}
+
 export interface GoalProgress {
   currentWeight: number;
   targetWeight: number;
@@ -48,6 +55,7 @@ interface HistoryData {
 
 export const useWeightForecast = (userId: string | undefined) => {
   const [forecast, setForecast] = useState<WeightForecast | null>(null);
+  const [ruleBasedForecast, setRuleBasedForecast] = useState<RuleBasedForecast | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dataPointCount, setDataPointCount] = useState(0);
@@ -212,6 +220,7 @@ export const useWeightForecast = (userId: string | undefined) => {
       }
 
       setForecast(data.forecast);
+      setRuleBasedForecast(data.ruleBasedForecast || null);
       setDataPointCount(data.dataPointCount);
     } catch (err) {
       console.error('Forecast error:', err);
@@ -221,5 +230,5 @@ export const useWeightForecast = (userId: string | undefined) => {
     }
   }, [userId]);
 
-  return { forecast, loading, error, dataPointCount, fetchForecast };
+  return { forecast, ruleBasedForecast, loading, error, dataPointCount, fetchForecast };
 };

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { useWeightForecast, WeightForecast as ForecastType, GoalProgress } from '@/hooks/useWeightForecast';
+import { useWeightForecast, WeightForecast as ForecastType, GoalProgress, RuleBasedForecast } from '@/hooks/useWeightForecast';
 import { 
   TrendingDown, 
   TrendingUp, 
@@ -155,7 +155,7 @@ const GoalProgressCard = ({ goalProgress }: { goalProgress: GoalProgress }) => {
 };
 
 export const WeightForecast = ({ userId }: WeightForecastProps) => {
-  const { forecast, loading, error, dataPointCount, fetchForecast } = useWeightForecast(userId);
+  const { forecast, ruleBasedForecast, loading, error, dataPointCount, fetchForecast } = useWeightForecast(userId);
   const [isOpen, setIsOpen] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -253,11 +253,63 @@ export const WeightForecast = ({ userId }: WeightForecastProps) => {
           <GoalProgressCard goalProgress={forecast.goalProgress} />
         )}
 
-        {/* Forecast Cards */}
+        {/* Comparison Table */}
         <div className="space-y-2">
-          <ForecastCard title="1 Hafta" forecast={forecast.weeklyForecast} />
-          <ForecastCard title="1 Ay" forecast={forecast.monthlyForecast} />
-          <ForecastCard title="3 Ay" forecast={forecast.threeMonthForecast} />
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Model Karşılaştırması</div>
+          <div className="rounded-lg border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="text-left p-2 font-medium">Dönem</th>
+                  <th className="text-center p-2 font-medium">
+                    <div className="flex items-center justify-center gap-1">
+                      <Brain className="h-3 w-3" />
+                      <span>Prediktif</span>
+                    </div>
+                  </th>
+                  <th className="text-center p-2 font-medium">
+                    <div className="flex items-center justify-center gap-1">
+                      <Scale className="h-3 w-3" />
+                      <span>Kural Tabanlı</span>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: '1 Hafta', pred: forecast.weeklyForecast, rule: ruleBasedForecast?.weeklyForecast },
+                  { label: '1 Ay', pred: forecast.monthlyForecast, rule: ruleBasedForecast?.monthlyForecast },
+                  { label: '3 Ay', pred: forecast.threeMonthForecast, rule: ruleBasedForecast?.threeMonthForecast },
+                ].map((row) => (
+                  <tr key={row.label} className="border-t border-muted/30">
+                    <td className="p-2 font-medium">{row.label}</td>
+                    <td className="p-2 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <DirectionIcon direction={row.pred.direction} />
+                        <DirectionBadge direction={row.pred.direction} kg={row.pred.kg} />
+                      </div>
+                    </td>
+                    <td className="p-2 text-center">
+                      {row.rule ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <DirectionIcon direction={row.rule.direction} />
+                          <DirectionBadge direction={row.rule.direction} kg={row.rule.kg} />
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {ruleBasedForecast && (
+            <p className="text-xs text-muted-foreground">
+              Kural tabanlı: Ort. günlük denge ({ruleBasedForecast.avgDailyBalance} kcal) × 7700 kcal/kg sabit formülü. 
+              Prediktif: Ağırlıklı regresyon + EWMA momentum blend modeli.
+            </p>
+          )}
         </div>
 
         {/* Summary */}
