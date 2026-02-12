@@ -12,10 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      console.error("No authorization header provided");
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -31,7 +29,6 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: authData, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !authData?.user) {
-      console.error("Authentication failed:", authError?.message);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -39,9 +36,7 @@ serve(async (req) => {
     }
 
     const userId = authData.user.id;
-    console.log(`Authenticated user: ${userId}`);
-
-    const { foodName } = await req.json();
+    const { foodName, correctedCalories } = await req.json();
 
     if (!foodName || typeof foodName !== 'string') {
       return new Response(
@@ -50,16 +45,57 @@ serve(async (req) => {
       );
     }
 
+    const normalized = foodName.trim().toLowerCase().replace(/\s+/g, ' ');
+
+    // If user is submitting a correction, save to cache and return
+    if (correctedCalories && typeof correctedCalories === 'number') {
+      const { error: upsertError } = await supabaseClient
+        .from('calorie_cache')
+        .upsert({
+          user_id: userId,
+          food_name: foodName.trim(),
+          food_name_normalized: normalized,
+          calories: correctedCalories,
+          verified: true,
+          source: 'user',
+        }, { onConflict: 'user_id,food_name_normalized' });
+
+      if (upsertError) {
+        console.error("Cache upsert error:", upsertError);
+      }
+
+      return new Response(
+        JSON.stringify({ calories: correctedCalories, source: 'user', cached: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Step 1: Check cache for verified value
+    const { data: cached } = await supabaseClient
+      .from('calorie_cache')
+      .select('calories, source, verified')
+      .eq('user_id', userId)
+      .eq('food_name_normalized', normalized)
+      .maybeSingle();
+
+    if (cached?.verified) {
+      console.log(`Cache hit (verified) for "${foodName}": ${cached.calories}`);
+      return new Response(
+        JSON.stringify({ calories: cached.calories, source: cached.source, cached: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Step 2: AI lookup with tool calling for structured output
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
       return new Response(
         JSON.stringify({ error: "AI service not configured" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Looking up calories for: ${foodName} (user: ${userId})`);
+    console.log(`AI lookup for: ${foodName} (user: ${userId})`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -72,39 +108,98 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Sen bir beslenme veritabanısın. Kullanıcı sana bir yiyecek adı verecek ve sen o yiyeceğin standart porsiyon kalori değerini döndüreceksin.
+            content: `Sen bir profesyonel beslenme uzmanı ve kalori veritabanısın. Kullanıcı sana bir yiyecek/içecek adı verecek ve sen USDA, Türk Gıda Kompozisyon veritabanı ve güvenilir beslenme kaynaklarına dayalı olarak kalori değerini döndüreceksin.
 
 KURALLAR:
-1. SADECE bir tam sayı döndür (kcal cinsinden). Başka hiçbir şey yazma.
-2. Her zaman aynı yiyecek için aynı değeri döndür - tutarlı ol.
-3. Standart porsiyon boyutları kullan:
-   - Meyveler: 1 orta boy (150g)
-   - Et/tavuk/balık: 100g pişmiş
-   - Pilav/makarna: 150g pişmiş (1 porsiyon)
-   - Ekmek: 1 dilim (30g)
-   - Yumurta: 1 adet büyük boy
-   - Süt/yoğurt: 200ml/200g
-   - Peynir: 30g
+1. lookup_calories fonksiyonunu kullanarak sonucu döndür.
+2. Her zaman aynı yiyecek için tutarlı ve aynı değeri döndür.
+3. Porsiyon belirtilmemişse aşağıdaki standart porsiyon boyutlarını kullan.
+4. Türk mutfağına özel yemekleri iyi bil.
 
-STANDART DEĞERLİ ÖRNEKLER (bu değerleri kullan):
-- elma -> 80
-- muz -> 105
-- yumurta -> 78
-- ekmek 1 dilim -> 80
-- tavuk göğsü 100g -> 165
-- pilav 1 porsiyon -> 195
-- yoğurt -> 120
-- süt 1 bardak -> 120
-- beyaz peynir -> 75
-- kaşar peynir -> 110
+STANDART PORSİYON BOYUTLARI:
+- Meyveler: 1 orta boy (yaklaşık 150g)
+- Kuru meyveler: 30g (1 avuç)
+- Et/tavuk/balık: 100g pişmiş
+- Kıyma: 100g pişmiş
+- Pilav: 150g pişmiş (1 porsiyon = ~1 su bardağı)
+- Makarna: 150g pişmiş
+- Bulgur: 150g pişmiş
+- Ekmek: 1 dilim (30-35g)
+- Yumurta: 1 adet büyük boy (60g)
+- Süt: 200ml (1 su bardağı)
+- Yoğurt: 200g (1 kase)
+- Ayran: 200ml
+- Peynir (beyaz): 30g (1 dilim)
+- Peynir (kaşar): 30g (1 dilim)
+- Zeytinyağı/tereyağı: 1 yemek kaşığı (14g)
+- Zeytin: 5 adet orta boy
+- Kuruyemiş: 30g (1 avuç)
+- Çorba: 250ml (1 kase)
+- Salata: 200g karışık (soslu)
+- Çay: 200ml (şekersiz)
+- Türk kahvesi: 65ml (1 fincan, şekersiz)
 
-Porsiyon belirtilmemişse standart porsiyonu kullan. HER ZAMAN AYNI YİYECEK İÇİN AYNI DEĞER.`
+TÜRK YEMEKLERİ REFERANS (100g veya 1 porsiyon):
+- Mercimek çorbası (1 kase): 150
+- Kuru fasulye (1 porsiyon 200g): 180
+- İmam bayıldı (1 porsiyon): 170
+- Karnıyarık (1 adet): 250
+- Lahmacun (1 adet): 270
+- Pide (1/2 porsiyon peynirli): 350
+- Döner (100g et): 220
+- Köfte (2 adet, 100g): 220
+- Mantı (1 porsiyon yoğurtlu): 350
+- Börek (1 dilim sigara böreği): 150
+- Su böreği (1 porsiyon): 300
+- Simit: 280
+- Poğaça (1 adet): 250
+- Gözleme (1 adet peynirli): 300
+- Menemen (1 porsiyon): 200
+- Sucuklu yumurta (2 yumurta + 40g sucuk): 350
+- Zeytinyağlı yaprak sarma (5 adet): 200
+- Taze fasulye (1 porsiyon zeytinyağlı): 120
+- Cacık (1 kase): 80
+- Baklava (1 dilim): 250
+- Künefe (1 porsiyon): 450
+- Sütlaç (1 kase): 200
+- Kazandibi (1 porsiyon): 220
+- Lokum (2 adet): 100`
           },
           {
             role: "user",
             content: foodName
           }
         ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "lookup_calories",
+              description: "Yiyeceğin kalori bilgisini döndür",
+              parameters: {
+                type: "object",
+                properties: {
+                  calories: {
+                    type: "integer",
+                    description: "Kalori değeri (kcal cinsinden)"
+                  },
+                  portion: {
+                    type: "string",
+                    description: "Hesaplanan porsiyon açıklaması, örn: '1 orta boy (150g)'"
+                  },
+                  confidence: {
+                    type: "string",
+                    enum: ["high", "medium", "low"],
+                    description: "Değerin güvenilirlik düzeyi"
+                  }
+                },
+                required: ["calories", "portion", "confidence"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "lookup_calories" } },
       }),
     });
 
@@ -118,7 +213,6 @@ Porsiyon belirtilmemişse standart porsiyonu kullan. HER ZAMAN AYNI YİYECEK İ�
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
       if (response.status === 402) {
         return new Response(
           JSON.stringify({ error: "Payment required, please add funds." }),
@@ -133,24 +227,58 @@ Porsiyon belirtilmemişse standart porsiyonu kullan. HER ZAMAN AYNI YİYECEK İ�
     }
 
     const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content?.trim();
     
-    console.log(`AI response for "${foodName}": ${content}`);
+    // Parse tool call response
+    let calories: number | null = null;
+    let portion = '';
+    let confidence = 'medium';
 
-    // Extract number from response
-    const calorieMatch = content?.match(/\d+/);
-    const calories = calorieMatch ? parseInt(calorieMatch[0], 10) : null;
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      try {
+        const args = JSON.parse(toolCall.function.arguments);
+        calories = args.calories;
+        portion = args.portion || '';
+        confidence = args.confidence || 'medium';
+      } catch (e) {
+        console.error("Failed to parse tool call args:", e);
+      }
+    }
+
+    // Fallback: parse from content if tool call failed
+    if (!calories) {
+      const content = aiData.choices?.[0]?.message?.content?.trim();
+      const match = content?.match(/\d+/);
+      calories = match ? parseInt(match[0], 10) : null;
+    }
 
     if (!calories || isNaN(calories)) {
-      console.error("Could not parse calories from response:", content);
       return new Response(
         JSON.stringify({ error: "Could not determine calories for this food" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log(`AI result for "${foodName}": ${calories} kcal (${portion}, confidence: ${confidence})`);
+
+    // Save to cache (unverified)
+    const { error: cacheError } = await supabaseClient
+      .from('calorie_cache')
+      .upsert({
+        user_id: userId,
+        food_name: foodName.trim(),
+        food_name_normalized: normalized,
+        calories,
+        verified: false,
+        source: 'ai',
+      }, { onConflict: 'user_id,food_name_normalized' });
+
+    if (cacheError) {
+      console.error("Cache save error:", cacheError);
+    }
+
     return new Response(
-      JSON.stringify({ calories }),
+      JSON.stringify({ calories, portion, confidence, source: 'ai', cached: false }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

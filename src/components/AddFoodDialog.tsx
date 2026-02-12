@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
-import { Search, Loader2, FileText } from 'lucide-react';
+import { Search, Loader2, FileText, Check, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,6 +51,8 @@ export const AddFoodDialog = ({
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
   const [loadingCustomFoods, setLoadingCustomFoods] = useState(false);
+  const [lookupInfo, setLookupInfo] = useState<{ portion?: string; confidence?: string; source?: string; cached?: boolean } | null>(null);
+  const [originalCalories, setOriginalCalories] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Fetch custom foods when dialog opens
@@ -91,20 +93,28 @@ export const AddFoodDialog = ({
     }
 
     setIsLookingUp(true);
+    setLookupInfo(null);
+    setOriginalCalories(null);
     try {
       const { data, error } = await supabase.functions.invoke('lookup-calories', {
         body: { foodName: name.trim() },
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
 
       if (data?.calories) {
         setCalories(data.calories.toString());
+        setOriginalCalories(data.calories);
+        setLookupInfo({
+          portion: data.portion,
+          confidence: data.confidence,
+          source: data.source,
+          cached: data.cached,
+        });
+        const sourceLabel = data.cached ? '(önbellekten)' : '(AI)';
         toast({
           title: "Kalori bulundu",
-          description: `${name} için tahmini kalori: ${data.calories} kcal`,
+          description: `${name} için: ${data.calories} kcal ${sourceLabel}${data.portion ? ` - ${data.portion}` : ''}`,
         });
       } else if (data?.error) {
         throw new Error(data.error);
@@ -121,12 +131,25 @@ export const AddFoodDialog = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mealType && name && calories) {
-      onAddFood(mealType, { name, calories: parseInt(calories) });
+      const cal = parseInt(calories);
+      // If user changed the AI value, save correction to cache
+      if (originalCalories && cal !== originalCalories && userId) {
+        try {
+          await supabase.functions.invoke('lookup-calories', {
+            body: { foodName: name.trim(), correctedCalories: cal },
+          });
+        } catch (err) {
+          console.error('Failed to save correction:', err);
+        }
+      }
+      onAddFood(mealType, { name, calories: cal });
       setName('');
       setCalories('');
+      setLookupInfo(null);
+      setOriginalCalories(null);
       onOpenChange(false);
     }
   };
@@ -287,9 +310,40 @@ export const AddFoodDialog = ({
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Yiyecek adını girdikten sonra 🔍 butonuna tıklayarak kaloriyi otomatik bulabilirsiniz
-              </p>
+              {lookupInfo && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    {lookupInfo.confidence === 'high' && (
+                      <span className="flex items-center gap-1 text-green-600"><Check className="h-3 w-3" /> Yüksek güven</span>
+                    )}
+                    {lookupInfo.confidence === 'medium' && (
+                      <span className="flex items-center gap-1 text-yellow-600"><AlertTriangle className="h-3 w-3" /> Orta güven</span>
+                    )}
+                    {lookupInfo.confidence === 'low' && (
+                      <span className="flex items-center gap-1 text-red-500"><AlertTriangle className="h-3 w-3" /> Düşük güven</span>
+                    )}
+                    {lookupInfo.cached && (
+                      <span className="text-muted-foreground">• Önbellekten</span>
+                    )}
+                    {lookupInfo.source === 'user' && (
+                      <span className="text-muted-foreground">• Doğrulanmış</span>
+                    )}
+                  </div>
+                  {lookupInfo.portion && (
+                    <p className="text-xs text-muted-foreground">Porsiyon: {lookupInfo.portion}</p>
+                  )}
+                  {originalCalories && parseInt(calories) !== originalCalories && (
+                    <p className="text-xs text-primary">
+                      ✓ Değeri düzelttiniz ({originalCalories} → {calories}). Ekle'ye basınca kaydedilecek.
+                    </p>
+                  )}
+                </div>
+              )}
+              {!lookupInfo && (
+                <p className="text-xs text-muted-foreground">
+                  Yiyecek adını girdikten sonra 🔍 butonuna tıklayarak kaloriyi otomatik bulabilirsiniz
+                </p>
+              )}
             </div>
             <Button
               type="submit"

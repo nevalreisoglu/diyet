@@ -65,6 +65,42 @@ export type Database = {
         }
         Relationships: []
       }
+      calorie_cache: {
+        Row: {
+          calories: number
+          created_at: string
+          food_name: string
+          food_name_normalized: string
+          id: string
+          source: string
+          updated_at: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          calories: number
+          created_at?: string
+          food_name: string
+          food_name_normalized: string
+          id?: string
+          source?: string
+          updated_at?: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          calories?: number
+          created_at?: string
+          food_name?: string
+          food_name_normalized?: string
+          id?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       custom_foods: {
         Row: {
           calories: number
