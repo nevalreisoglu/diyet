@@ -310,9 +310,40 @@ export const AddFoodDialog = ({
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Yiyecek adını girdikten sonra 🔍 butonuna tıklayarak kaloriyi otomatik bulabilirsiniz
-              </p>
+              {lookupInfo && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    {lookupInfo.confidence === 'high' && (
+                      <span className="flex items-center gap-1 text-green-600"><Check className="h-3 w-3" /> Yüksek güven</span>
+                    )}
+                    {lookupInfo.confidence === 'medium' && (
+                      <span className="flex items-center gap-1 text-yellow-600"><AlertTriangle className="h-3 w-3" /> Orta güven</span>
+                    )}
+                    {lookupInfo.confidence === 'low' && (
+                      <span className="flex items-center gap-1 text-red-500"><AlertTriangle className="h-3 w-3" /> Düşük güven</span>
+                    )}
+                    {lookupInfo.cached && (
+                      <span className="text-muted-foreground">• Önbellekten</span>
+                    )}
+                    {lookupInfo.source === 'user' && (
+                      <span className="text-muted-foreground">• Doğrulanmış</span>
+                    )}
+                  </div>
+                  {lookupInfo.portion && (
+                    <p className="text-xs text-muted-foreground">Porsiyon: {lookupInfo.portion}</p>
+                  )}
+                  {originalCalories && parseInt(calories) !== originalCalories && (
+                    <p className="text-xs text-primary">
+                      ✓ Değeri düzelttiniz ({originalCalories} → {calories}). Ekle'ye basınca kaydedilecek.
+                    </p>
+                  )}
+                </div>
+              )}
+              {!lookupInfo && (
+                <p className="text-xs text-muted-foreground">
+                  Yiyecek adını girdikten sonra 🔍 butonuna tıklayarak kaloriyi otomatik bulabilirsiniz
+                </p>
+              )}
             </div>
             <Button
               type="submit"
