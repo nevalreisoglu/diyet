@@ -131,12 +131,25 @@ export const AddFoodDialog = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mealType && name && calories) {
-      onAddFood(mealType, { name, calories: parseInt(calories) });
+      const cal = parseInt(calories);
+      // If user changed the AI value, save correction to cache
+      if (originalCalories && cal !== originalCalories && userId) {
+        try {
+          await supabase.functions.invoke('lookup-calories', {
+            body: { foodName: name.trim(), correctedCalories: cal },
+          });
+        } catch (err) {
+          console.error('Failed to save correction:', err);
+        }
+      }
+      onAddFood(mealType, { name, calories: cal });
       setName('');
       setCalories('');
+      setLookupInfo(null);
+      setOriginalCalories(null);
       onOpenChange(false);
     }
   };
