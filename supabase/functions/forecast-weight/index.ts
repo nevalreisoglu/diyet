@@ -94,26 +94,35 @@ function computeNetBalance(d: DailyDataPoint): number {
   return d.calories - d.targetCalories - exerciseBurn - hydrationBoost - caffeineBoost;
 }
 
-/** Project weight change using regression model */
+/** Project weight change using EWMA baseline + dampened trend */
 function projectWeight(
   netBalances: number[],
   days: number
 ): { kg: number; direction: "loss" | "gain" | "stable" } {
+  const n = netBalances.length;
+  if (n === 0) return { kg: 0, direction: "stable" };
+
   const reg = weightedLinearRegression(netBalances, 0.96);
   const smoothed = ewma(netBalances, 0.3);
-  const recentMomentum = smoothed.length >= 3
-    ? smoothed.slice(-3).reduce((a, b) => a + b, 0) / 3
-    : smoothed[smoothed.length - 1] ?? 0;
 
-  // Blend regression projection with recent momentum (60/40 weighting)
-  const lastIndex = netBalances.length - 1;
-  const regressionProjectedDaily = reg.intercept + reg.slope * (lastIndex + Math.floor(days / 2));
-  const blendedDaily = regressionProjectedDaily * 0.6 + recentMomentum * 0.4;
+  // Current daily balance from EWMA (most reliable current estimate)
+  const currentDaily = smoothed[smoothed.length - 1] ?? 0;
 
-  // Convert total kcal balance over the period to kg (7700 kcal ≈ 1 kg)
-  const totalBalance = blendedDaily * days;
+  // Recent 7-day average as stable anchor
+  const recentWindow = Math.min(7, n);
+  const recentAvg = netBalances.slice(-recentWindow).reduce((a, b) => a + b, 0) / recentWindow;
+
+  // Dampen the trend slope for longer projections to prevent wild extrapolation
+  const dampening = Math.exp(-days / 120);
+  const dailyTrendChange = reg.slope * dampening;
+
+  // Base daily rate: blend EWMA current (responsive) with recent average (stable)
+  const baseDaily = currentDaily * 0.6 + recentAvg * 0.4;
+
+  // Total = integral of (baseDaily + dailyTrendChange * t) over [0, days]
+  const totalBalance = baseDaily * days + dailyTrendChange * days * (days - 1) / 2;
+
   const kgChange = totalBalance / 7700;
-
   const absKg = Math.abs(Number(kgChange.toFixed(2)));
   const direction = kgChange > 0.05 ? "gain" : kgChange < -0.05 ? "loss" : "stable";
 
