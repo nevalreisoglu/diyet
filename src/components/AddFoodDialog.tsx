@@ -51,6 +51,8 @@ export const AddFoodDialog = ({
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
   const [loadingCustomFoods, setLoadingCustomFoods] = useState(false);
+  const [lookupInfo, setLookupInfo] = useState<{ portion?: string; confidence?: string; source?: string; cached?: boolean } | null>(null);
+  const [originalCalories, setOriginalCalories] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Fetch custom foods when dialog opens
