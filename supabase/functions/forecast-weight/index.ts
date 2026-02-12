@@ -82,18 +82,16 @@ function stddev(values: number[]): number {
   return Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1));
 }
 
-/** Compute net daily energy balance (calories in − exercise burn) */
+/** Compute net daily energy balance (calories in − exercise burn − metabolic boosts) */
 function computeNetBalance(d: DailyDataPoint): number {
-  // Adaptive burn: use MET-based estimate ~6-8 kcal/min depending on exercise volume
+  // Adaptive burn: MET-based estimate ~5.5-7.5 kcal/min depending on exercise volume
   const burnRate = d.exerciseMinutes > 45 ? 7.5 : d.exerciseMinutes > 20 ? 6.5 : 5.5;
   const exerciseBurn = d.exerciseMinutes * burnRate;
-  // Hydration & caffeine metabolic boost (minor but measurable)
+  // Hydration & caffeine metabolic boost: good hydration/caffeine increases metabolism = more burn
   const hydrationBoost = d.waterMl >= d.targetWaterMl ? 50 : (d.waterMl / d.targetWaterMl) * 50;
   const caffeineBoost = Math.min((d.coffeeCount + d.teaCount * 0.5) * 10, 40);
-  return d.calories - d.targetCalories - exerciseBurn + hydrationBoost + caffeineBoost;
   // Negative = deficit (weight loss), Positive = surplus (weight gain)
-  // Note: hydrationBoost reduces effective deficit (better metabolism = less net surplus)
-  // We subtract it from the net because good hydration helps burn more
+  return d.calories - d.targetCalories - exerciseBurn - hydrationBoost - caffeineBoost;
 }
 
 /** Project weight change using regression model */
