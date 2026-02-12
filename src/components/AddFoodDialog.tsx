@@ -93,20 +93,28 @@ export const AddFoodDialog = ({
     }
 
     setIsLookingUp(true);
+    setLookupInfo(null);
+    setOriginalCalories(null);
     try {
       const { data, error } = await supabase.functions.invoke('lookup-calories', {
         body: { foodName: name.trim() },
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
 
       if (data?.calories) {
         setCalories(data.calories.toString());
+        setOriginalCalories(data.calories);
+        setLookupInfo({
+          portion: data.portion,
+          confidence: data.confidence,
+          source: data.source,
+          cached: data.cached,
+        });
+        const sourceLabel = data.cached ? '(önbellekten)' : '(AI)';
         toast({
           title: "Kalori bulundu",
-          description: `${name} için tahmini kalori: ${data.calories} kcal`,
+          description: `${name} için: ${data.calories} kcal ${sourceLabel}${data.portion ? ` - ${data.portion}` : ''}`,
         });
       } else if (data?.error) {
         throw new Error(data.error);
