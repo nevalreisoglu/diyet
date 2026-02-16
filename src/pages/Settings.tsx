@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Target, Droplets, Scale, Calendar } from 'lucide-react';
+import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Settings = () => {
@@ -22,6 +22,9 @@ const Settings = () => {
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [targetWeight, setTargetWeight] = useState<number | null>(null);
   const [weightGoalWeeks, setWeightGoalWeeks] = useState(12);
+  const [heightCm, setHeightCm] = useState<number | null>(null);
+  const [gender, setGender] = useState<string | null>(null);
+  const [age, setAge] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -38,7 +41,7 @@ const Settings = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('target_calories, target_water_ml, display_name, current_weight_kg, target_weight_kg, weight_goal_weeks')
+          .select('target_calories, target_water_ml, display_name, current_weight_kg, target_weight_kg, weight_goal_weeks, height_cm, gender, age')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -51,6 +54,9 @@ const Settings = () => {
           setCurrentWeight(data.current_weight_kg ?? null);
           setTargetWeight(data.target_weight_kg ?? null);
           setWeightGoalWeeks(data.weight_goal_weeks ?? 12);
+          setHeightCm(data.height_cm ? Number(data.height_cm) : null);
+          setGender(data.gender ?? null);
+          setAge(data.age ?? null);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -76,6 +82,9 @@ const Settings = () => {
           current_weight_kg: currentWeight,
           target_weight_kg: targetWeight,
           weight_goal_weeks: weightGoalWeeks,
+          height_cm: heightCm,
+          gender: gender,
+          age: age,
         })
         .eq('user_id', user.id);
 
@@ -245,6 +254,66 @@ const Settings = () => {
               <p className="text-xs text-muted-foreground">
                 Hedefinize ulaşmak istediğiniz süre (AI önerileri için kullanılır)
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" />
+              Fiziksel Bilgiler
+            </CardTitle>
+            <CardDescription>
+              Metabolik hesaplamalar için gerekli (BMR, TDEE, BMI)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="heightCm" className="flex items-center gap-2">
+                <Ruler className="h-4 w-4 text-primary" />
+                Boy (cm)
+              </Label>
+              <Input
+                id="heightCm"
+                type="number"
+                min={100}
+                max={250}
+                placeholder="Örn: 175"
+                value={heightCm ?? ''}
+                onChange={(e) => setHeightCm(e.target.value ? parseFloat(e.target.value) : null)}
+                className="max-w-xs"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="age">Yaş</Label>
+              <Input
+                id="age"
+                type="number"
+                min={10}
+                max={120}
+                placeholder="Örn: 30"
+                value={age ?? ''}
+                onChange={(e) => setAge(e.target.value ? parseInt(e.target.value) : null)}
+                className="max-w-xs"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender">Cinsiyet</Label>
+              <Select
+                value={gender || ''}
+                onValueChange={(value) => setGender(value || null)}
+              >
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="Cinsiyet seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Erkek</SelectItem>
+                  <SelectItem value="female">Kadın</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

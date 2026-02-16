@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 import Install from "./pages/Install";
+import MetabolicTwin from "./pages/MetabolicTwin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/install" element={<Install />} />
+          <Route path="/metabolic-twin" element={<MetabolicTwin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
