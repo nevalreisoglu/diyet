@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.forecast-weight]
 verify_jwt = false
+
+[functions.metabolic-twin]
+verify_jwt = false

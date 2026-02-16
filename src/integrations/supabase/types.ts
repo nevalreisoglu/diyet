@@ -258,9 +258,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           created_at: string
           current_weight_kg: number | null
           display_name: string | null
+          gender: string | null
+          height_cm: number | null
           id: string
           target_calories: number | null
           target_water_ml: number | null
@@ -270,9 +273,12 @@ export type Database = {
           weight_goal_weeks: number | null
         }
         Insert: {
+          age?: number | null
           created_at?: string
           current_weight_kg?: number | null
           display_name?: string | null
+          gender?: string | null
+          height_cm?: number | null
           id?: string
           target_calories?: number | null
           target_water_ml?: number | null
@@ -282,9 +288,12 @@ export type Database = {
           weight_goal_weeks?: number | null
         }
         Update: {
+          age?: number | null
           created_at?: string
           current_weight_kg?: number | null
           display_name?: string | null
+          gender?: string | null
+          height_cm?: number | null
           id?: string
           target_calories?: number | null
           target_water_ml?: number | null

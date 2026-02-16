@@ -1,4 +1,4 @@
-import { CalendarDays, Leaf, LogOut, History, Settings } from 'lucide-react';
+import { CalendarDays, Leaf, LogOut, History, Settings, Dna } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +33,15 @@ export const Header = () => {
             </div>
             {user && (
               <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/metabolic-twin')}
+                  className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary"
+                  title="Metabolik İkiz"
+                >
+                  <Dna className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
