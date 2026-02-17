@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { scenario, profile, recentData } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+    if (!GOOGLE_AI_API_KEY) throw new Error("GOOGLE_AI_API_KEY is not configured");
 
     const systemPrompt = `Sen bir metabolizma uzmanı ve beslenme danışmanısın. Türkçe yanıt ver.
 Kullanıcının metabolik profilini analiz et ve what-if senaryolarını değerlendir.
@@ -32,14 +32,14 @@ Son ${recentData?.length || 0} günlük ortalama veriler:
 - Ortalama Kahve: ${recentData?.avgCoffee || 0} fincan
 - Ortalama Çay: ${recentData?.avgTea || 0} fincan`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${GOOGLE_AI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: scenario },

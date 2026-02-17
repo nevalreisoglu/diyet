@@ -51,29 +51,24 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
+    if (!GOOGLE_AI_API_KEY) {
+      throw new Error('GOOGLE_AI_API_KEY is not configured');
     }
 
     console.log('Parsing PDF with AI vision...');
 
-    // Use multimodal AI to extract food items AND meal schedules from PDF
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Use native Gemini API for PDF support
+    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_AI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Sen bir beslenme uzmanısın. Bu PDF dosyasındaki yiyecek listesini ve öğün saatlerini analiz et.
+        contents: [{
+          parts: [
+            {
+              text: `Sen bir beslenme uzmanısın. Bu PDF dosyasındaki yiyecek listesini ve öğün saatlerini analiz et.
 
 Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
 {
@@ -101,17 +96,15 @@ Kurallar:
   - 3. ara öğün besinleri için "snack3"
 - Öğün saatleri metinde varsa onları kullan, yoksa varsayılan değerleri kullan
 - Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et`
-              },
-              {
-                type: 'file',
-                file: {
-                  filename: 'diet.pdf',
-                  file_data: `data:application/pdf;base64,${pdfBase64}`
-                }
+            },
+            {
+              inlineData: {
+                mimeType: 'application/pdf',
+                data: pdfBase64
               }
-            ]
-          }
-        ],
+            }
+          ]
+        }],
       }),
     });
 
@@ -122,7 +115,7 @@ Kurallar:
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || '{}';
+    const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     
     console.log('AI response:', content);
 
