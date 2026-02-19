@@ -51,22 +51,24 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
     }
 
     console.log('Parsing PDF with AI vision...');
 
     // Use multimodal AI to extract food items AND meal schedules from PDF
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'x-api-key': ANTHROPIC_API_KEY,
         'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'claude-opus-4-6',
+        max_tokens: 1024,
         messages: [
           {
             role: 'user',
@@ -103,12 +105,13 @@ Kurallar:
 - Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et`
               },
               {
-                type: 'file',
-                file: {
-                  filename: 'diet.pdf',
-                  file_data: `data:application/pdf;base64,${pdfBase64}`
-                }
-              }
+                type: 'document',
+                source: {
+                  type: 'base64',
+                  media_type: 'application/pdf',
+                  data: pdfBase64,
+                },
+              },
             ]
           }
         ],
@@ -117,12 +120,15 @@ Kurallar:
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
+      console.error('AI API error:', aiResponse.status, errorText);
+      if (aiResponse.status === 401) {
+        throw new Error('API anahtarı geçersiz. Lütfen ANTHROPIC_API_KEY kontrol edin.');
+      }
       throw new Error('AI API request failed');
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || '{}';
+    const content = aiData.content?.[0]?.text || '{}';
     
     console.log('AI response:', content);
 
