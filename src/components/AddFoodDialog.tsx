@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
-import { Search, Loader2, FileText, Check, AlertTriangle } from 'lucide-react';
+import { Search, Loader2, FileText, Check, AlertTriangle, Camera } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { PhotoFoodRecognizer } from '@/components/PhotoFoodRecognizer';
 
 interface AddFoodDialogProps {
   open: boolean;
@@ -178,9 +179,13 @@ export const AddFoodDialog = ({
         <div className="flex-1 overflow-auto">
           {/* Quick add section with tabs if user has custom foods */}
           <Tabs defaultValue="custom" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-3">
+            <TabsList className="grid w-full grid-cols-3 mb-3">
               <TabsTrigger value="custom">Listem</TabsTrigger>
               <TabsTrigger value="default">Genel</TabsTrigger>
+              <TabsTrigger value="photo" className="flex items-center gap-1">
+                <Camera className="h-3 w-3" />
+                Foto
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="custom" className="mt-0">
@@ -259,6 +264,25 @@ export const AddFoodDialog = ({
                     {food.name}
                   </button>
                 ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="photo" className="mt-0">
+              <Label className="text-muted-foreground text-sm">Yemeğin fotoğrafını çekin veya galeriden seçin</Label>
+              <div className="mt-2">
+                <PhotoFoodRecognizer
+                  onAddFood={(food) => {
+                    if (mealType) {
+                      onAddFood(mealType, food);
+                    }
+                  }}
+                  onAddAllFoods={(foods) => {
+                    if (mealType) {
+                      foods.forEach(food => onAddFood(mealType, food));
+                      onOpenChange(false);
+                    }
+                  }}
+                />
               </div>
             </TabsContent>
           </Tabs>
