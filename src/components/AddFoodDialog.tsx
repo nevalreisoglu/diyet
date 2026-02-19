@@ -101,7 +101,15 @@ export const AddFoodDialog = ({
         body: { foodName: name.trim() },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        // data still contains the function's JSON response body even on non-2xx
+        const actualError = data?.error || error.message;
+        throw new Error(actualError);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       if (data?.calories) {
         setCalories(data.calories.toString());

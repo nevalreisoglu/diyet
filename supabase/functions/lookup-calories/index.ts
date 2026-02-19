@@ -90,8 +90,8 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "AI service not configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "AI servisi yapılandırılmamış. Lütfen değeri manuel girin." }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -206,23 +206,23 @@ TÜRK YEMEKLERİ REFERANS (100g veya 1 porsiyon):
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      
+
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded, please try again later." }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: "AI servisi şu an yoğun, lütfen tekrar deneyin." }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Payment required, please add funds." }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: "AI servisi şu an kullanılamıyor." }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
+
       return new Response(
-        JSON.stringify({ error: "Failed to lookup calories" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Kalori araması başarısız oldu. Lütfen değeri manuel girin." }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -254,8 +254,8 @@ TÜRK YEMEKLERİ REFERANS (100g veya 1 porsiyon):
 
     if (!calories || isNaN(calories)) {
       return new Response(
-        JSON.stringify({ error: "Could not determine calories for this food" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Bu yiyecek için kalori belirlenemedi. Lütfen değeri manuel girin." }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
