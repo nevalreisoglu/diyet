@@ -137,8 +137,8 @@ serve(async (req) => {
   try {
     const { historyData } = await req.json() as { historyData: HistoryData };
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     // Sort chronologically (oldest first)
     const sorted = [...historyData.dailyData].sort(
@@ -313,17 +313,18 @@ ${JSON.stringify(sorted.slice(-7).map(d => ({
 
 Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneriler üret.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
         "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-opus-4-6",
+        max_tokens: 1024,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
+          { role: "user", content: systemPrompt + "\n\n" + userMessage },
         ],
       }),
     });
@@ -334,13 +335,13 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Kredi yetersiz, lütfen hesabınızı kontrol edin." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (response.status === 401) {
+        return new Response(JSON.stringify({ error: "API anahtarı geçersiz. Lütfen ANTHROPIC_API_KEY kontrol edin." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("Claude API error:", response.status, errorText);
       // Fallback: return model projections without AI interpretation
       return new Response(JSON.stringify({
         forecast: {
@@ -369,7 +370,7 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
     }
 
     const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content;
+    const content = aiData.content?.[0]?.text;
 
     let aiInterpretation = { insights: [] as string[], recommendations: [] as string[], summary: "" };
     if (content) {
