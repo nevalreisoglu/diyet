@@ -128,8 +128,8 @@ const GoalProgressCard = ({ goalProgress }: { goalProgress: GoalProgress }) => {
 
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{isLosing ? 'Verilecek' : 'Alınacak'}: {Math.abs(weightDiff).toFixed(1)} kg</span>
-          <span>{progressPercent.toFixed(0)}%</span>
+          <span>{isLosing ? 'Verilecek' : 'Alınacak'}: {Math.abs(weightDiff ?? 0).toFixed(1)} kg</span>
+          <span>{(progressPercent ?? 0).toFixed(0)}%</span>
         </div>
         <Progress value={100 - progressPercent} className="h-2" />
       </div>
@@ -141,15 +141,15 @@ const GoalProgressCard = ({ goalProgress }: { goalProgress: GoalProgress }) => {
         </div>
       )}
 
-      {goalProgress.weeklyRequired !== undefined && goalProgress.dailyCalorieChange !== undefined && (
+      {goalProgress.weeklyRequired != null && goalProgress.dailyCalorieChange != null && (
         <div className="pt-2 border-t border-primary/20 space-y-1 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <Target className="h-3 w-3" />
-            <span>Haftalık gerekli: <strong className="text-foreground">{Math.abs(goalProgress.weeklyRequired).toFixed(2)} kg/{isLosing ? 'kayıp' : 'artış'}</strong></span>
+            <span>Haftalık gerekli: <strong className="text-foreground">{Math.abs(goalProgress.weeklyRequired ?? 0).toFixed(2)} kg/{isLosing ? 'kayıp' : 'artış'}</strong></span>
           </div>
           <div className="flex items-center gap-2">
             <Zap className="h-3 w-3" />
-            <span>Günlük kalori {isLosing ? 'açığı' : 'fazlası'}: <strong className="text-foreground">{Math.abs(goalProgress.dailyCalorieChange).toFixed(0)} kcal</strong></span>
+            <span>Günlük kalori {isLosing ? 'açığı' : 'fazlası'}: <strong className="text-foreground">{Math.abs(goalProgress.dailyCalorieChange ?? 0).toFixed(0)} kcal</strong></span>
           </div>
         </div>
       )}
@@ -340,7 +340,7 @@ export const WeightForecast = ({ userId }: WeightForecastProps) => {
                   <div className="p-2.5 rounded-lg bg-muted/50 space-y-1">
                     <p className="text-xs text-muted-foreground">R² (Açıklayıcılık)</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold">{(modelInfo.r2 * 100).toFixed(1)}%</p>
+                      <p className="text-sm font-semibold">{((modelInfo.r2 ?? 0) * 100).toFixed(1)}%</p>
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                         {modelInfo.r2 > 0.5 ? 'Güçlü' : modelInfo.r2 > 0.3 ? 'Orta' : 'Zayıf'}
                       </Badge>
@@ -397,14 +397,14 @@ export const WeightForecast = ({ userId }: WeightForecastProps) => {
                     { label: '1 Ay', pred: forecast.monthlyForecast, rule: ruleBasedForecast.monthlyForecast },
                     { label: '3 Ay', pred: forecast.threeMonthForecast, rule: ruleBasedForecast.threeMonthForecast },
                   ].map((row) => {
-                    const predKg = row.pred.direction === 'loss' ? -row.pred.kg : row.pred.direction === 'gain' ? row.pred.kg : 0;
-                    const ruleKg = row.rule.direction === 'loss' ? -row.rule.kg : row.rule.direction === 'gain' ? row.rule.kg : 0;
-                    const diff = predKg - ruleKg;
+                    const predKg = row.pred.direction === 'loss' ? -(row.pred.kg ?? 0) : row.pred.direction === 'gain' ? (row.pred.kg ?? 0) : 0;
+                    const ruleKg = row.rule.direction === 'loss' ? -(row.rule.kg ?? 0) : row.rule.direction === 'gain' ? (row.rule.kg ?? 0) : 0;
+                    const diff = (predKg ?? 0) - (ruleKg ?? 0);
                     return (
                       <div key={row.label} className="flex items-center justify-between p-2 rounded bg-muted/30 text-sm">
                         <span className="font-medium">{row.label}</span>
                         <span className={`font-semibold ${Math.abs(diff) < 0.05 ? 'text-muted-foreground' : diff > 0 ? 'text-orange-500' : 'text-green-500'}`}>
-                          {diff > 0 ? '+' : ''}{diff.toFixed(2)} kg fark
+                          {diff > 0 ? '+' : ''}{(diff ?? 0).toFixed(2)} kg fark
                         </span>
                       </div>
                     );

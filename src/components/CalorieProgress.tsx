@@ -43,7 +43,7 @@ export const CalorieProgress = ({ current, target }: CalorieProgressProps) => {
         {/* Remaining calories */}
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
-            {percentage.toFixed(0)}% tamamlandı
+            {(percentage ?? 0).toFixed(0)}% tamamlandı
           </span>
           <span
             className={`text-sm font-medium ${

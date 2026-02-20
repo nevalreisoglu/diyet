@@ -105,7 +105,7 @@ serve(async (req) => {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-3-5-haiku-20241022",
         max_tokens: 1024,
         system: `Sen bir profesyonel beslenme uzmanı ve kalori veritabanısın. Kullanıcı sana bir yiyecek/içecek adı verecek ve sen USDA, Türk Gıda Kompozisyon veritabanı ve güvenilir beslenme kaynaklarına dayalı olarak kalori değerini döndüreceksin.
 
