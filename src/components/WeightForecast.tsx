@@ -350,10 +350,10 @@ export const WeightForecast = ({ userId }: WeightForecastProps) => {
                   <div className="p-2.5 rounded-lg bg-muted/50 space-y-1">
                     <p className="text-xs text-muted-foreground">Trend Eğimi</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold">{modelInfo.trendSlope > 0 ? '+' : ''}{modelInfo.trendSlope.toFixed(1)} kcal/gün</p>
-                      {modelInfo.trendSlope > 5 ? (
+                      <p className="text-sm font-semibold">{(modelInfo.trendSlope ?? 0) > 0 ? '+' : ''}{(modelInfo.trendSlope ?? 0).toFixed(1)} kcal/gün</p>
+                      {(modelInfo.trendSlope ?? 0) > 5 ? (
                         <TrendingUp className="h-3.5 w-3.5 text-orange-500" />
-                      ) : modelInfo.trendSlope < -5 ? (
+                      ) : (modelInfo.trendSlope ?? 0) < -5 ? (
                         <TrendingDown className="h-3.5 w-3.5 text-green-500" />
                       ) : (
                         <Minus className="h-3.5 w-3.5 text-muted-foreground" />

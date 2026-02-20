@@ -339,7 +339,7 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           avgDailyBalance: Math.round(avgNetBalance),
         },
         dataPointCount: sorted.length,
-        modelInfo: { type: "statistical_fallback", r2: balanceReg.r2 },
+        modelInfo: { type: "statistical_fallback", r2: balanceReg.r2, trendSlope: balanceReg.slope, ewmaLatest: stats.ewmaLatest.balance, confidenceBasis: confidenceLevel },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -395,7 +395,7 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           goalProgress,
         },
         dataPointCount: sorted.length,
-        modelInfo: { type: "statistical_fallback", r2: balanceReg.r2 },
+        modelInfo: { type: "statistical_fallback", r2: balanceReg.r2, trendSlope: balanceReg.slope, ewmaLatest: stats.ewmaLatest.balance, confidenceBasis: confidenceLevel },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
