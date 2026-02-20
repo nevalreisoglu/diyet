@@ -138,11 +138,6 @@ serve(async (req) => {
     const { historyData } = await req.json() as { historyData: HistoryData };
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY is not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     // Sort chronologically (oldest first)
     const sorted = [...historyData.dailyData].sort(
@@ -316,6 +311,39 @@ ${JSON.stringify(sorted.slice(-7).map(d => ({
 })), null, 2)}
 
 Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneriler üret.`;
+
+    if (!ANTHROPIC_API_KEY) {
+      return new Response(JSON.stringify({
+        forecast: {
+          weeklyForecast: weeklyProjection,
+          monthlyForecast: monthlyProjection,
+          threeMonthForecast: threeMonthProjection,
+          insights: [
+            `Son ${recentWindow} gün ort. net enerji dengesi: ${stats.recentAvg.netBalance} kcal/gün`,
+            `Kalori trendi eğimi: ${calorieReg.slope > 0 ? 'artış' : 'azalış'} (R²=${balanceReg.r2.toFixed(2)})`,
+            `Su hedefinin %${stats.recentAvg.waterRatio}'ine ulaşıyorsunuz`,
+          ],
+          recommendations: [
+            `Günlük net enerji dengenizi ${Math.abs(stats.recentAvg.netBalance)} kcal ${stats.recentAvg.netBalance > 0 ? 'azaltmaya' : 'artırmaya'} çalışın.`,
+            stats.recentAvg.exercise < 30 ? "Günlük egzersizi en az 30 dakikaya çıkarın." : "Egzersiz rutininiz iyi, devam edin.",
+            stats.recentAvg.waterRatio < 80 ? "Su tüketimini hedefin %80'ine çıkarın." : "Su tüketiminiz yeterli.",
+          ],
+          confidenceLevel,
+          summary: `${sorted.length} günlük veriye dayalı istatistiksel model analizi`,
+          goalProgress,
+        },
+        ruleBasedForecast: {
+          weeklyForecast: ruleWeekly,
+          monthlyForecast: ruleMonthly,
+          threeMonthForecast: ruleThreeMonth,
+          avgDailyBalance: Math.round(avgNetBalance),
+        },
+        dataPointCount: sorted.length,
+        modelInfo: { type: "statistical_fallback", r2: balanceReg.r2 },
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
