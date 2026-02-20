@@ -86,29 +86,28 @@ serve(async (req) => {
       );
     }
 
-    // Step 2: AI lookup with tool calling for structured output
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    // Step 2: AI lookup via Anthropic Claude
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "AI service not configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "AI servisi yapılandırılmamış. Lütfen değeri manuel girin." }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log(`AI lookup for: ${foodName} (user: ${userId})`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Sen bir profesyonel beslenme uzmanı ve kalori veritabanısın. Kullanıcı sana bir yiyecek/içecek adı verecek ve sen USDA, Türk Gıda Kompozisyon veritabanı ve güvenilir beslenme kaynaklarına dayalı olarak kalori değerini döndüreceksin.
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        system: `Sen bir profesyonel beslenme uzmanı ve kalori veritabanısın. Kullanıcı sana bir yiyecek/içecek adı verecek ve sen USDA, Türk Gıda Kompozisyon veritabanı ve güvenilir beslenme kaynaklarına dayalı olarak kalori değerini döndüreceksin.
 
 KURALLAR:
 1. lookup_calories fonksiyonunu kullanarak sonucu döndür.
@@ -163,8 +162,8 @@ TÜRK YEMEKLERİ REFERANS (100g veya 1 porsiyon):
 - Künefe (1 porsiyon): 450
 - Sütlaç (1 kase): 200
 - Kazandibi (1 porsiyon): 220
-- Lokum (2 adet): 100`
-          },
+- Lokum (2 adet): 100`,
+        messages: [
           {
             role: "user",
             content: foodName
@@ -172,90 +171,85 @@ TÜRK YEMEKLERİ REFERANS (100g veya 1 porsiyon):
         ],
         tools: [
           {
-            type: "function",
-            function: {
-              name: "lookup_calories",
-              description: "Yiyeceğin kalori bilgisini döndür",
-              parameters: {
-                type: "object",
-                properties: {
-                  calories: {
-                    type: "integer",
-                    description: "Kalori değeri (kcal cinsinden)"
-                  },
-                  portion: {
-                    type: "string",
-                    description: "Hesaplanan porsiyon açıklaması, örn: '1 orta boy (150g)'"
-                  },
-                  confidence: {
-                    type: "string",
-                    enum: ["high", "medium", "low"],
-                    description: "Değerin güvenilirlik düzeyi"
-                  }
+            name: "lookup_calories",
+            description: "Yiyeceğin kalori bilgisini döndür",
+            input_schema: {
+              type: "object",
+              properties: {
+                calories: {
+                  type: "integer",
+                  description: "Kalori değeri (kcal cinsinden)"
                 },
-                required: ["calories", "portion", "confidence"],
-                additionalProperties: false
-              }
+                portion: {
+                  type: "string",
+                  description: "Hesaplanan porsiyon açıklaması, örn: '1 orta boy (150g)'"
+                },
+                confidence: {
+                  type: "string",
+                  enum: ["high", "medium", "low"],
+                  description: "Değerin güvenilirlik düzeyi"
+                }
+              },
+              required: ["calories", "portion", "confidence"]
             }
           }
         ],
-        tool_choice: { type: "function", function: { name: "lookup_calories" } },
+        tool_choice: { type: "tool", name: "lookup_calories" },
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      
+      console.error("Anthropic API error:", response.status, errorText);
+
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded, please try again later." }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: "AI servisi şu an yoğun, lütfen tekrar deneyin." }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Payment required, please add funds." }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: "AI servisi şu an kullanılamıyor." }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
+
       return new Response(
-        JSON.stringify({ error: "Failed to lookup calories" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Kalori araması başarısız oldu. Lütfen değeri manuel girin." }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const aiData = await response.json();
-    
-    // Parse tool call response
+
+    // Parse tool use response (Anthropic format)
     let calories: number | null = null;
     let portion = '';
     let confidence = 'medium';
 
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
+    const toolUseBlock = aiData.content?.find((block: { type: string }) => block.type === 'tool_use');
+    if (toolUseBlock?.input) {
       try {
-        const args = JSON.parse(toolCall.function.arguments);
-        calories = args.calories;
-        portion = args.portion || '';
-        confidence = args.confidence || 'medium';
+        calories = toolUseBlock.input.calories;
+        portion = toolUseBlock.input.portion || '';
+        confidence = toolUseBlock.input.confidence || 'medium';
       } catch (e) {
-        console.error("Failed to parse tool call args:", e);
+        console.error("Failed to parse tool use input:", e);
       }
     }
 
-    // Fallback: parse from content if tool call failed
+    // Fallback: parse from text content if tool use failed
     if (!calories) {
-      const content = aiData.choices?.[0]?.message?.content?.trim();
-      const match = content?.match(/\d+/);
+      const textBlock = aiData.content?.find((block: { type: string }) => block.type === 'text');
+      const match = textBlock?.text?.match(/\d+/);
       calories = match ? parseInt(match[0], 10) : null;
     }
 
     if (!calories || isNaN(calories)) {
       return new Response(
-        JSON.stringify({ error: "Could not determine calories for this food" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Bu yiyecek için kalori belirlenemedi. Lütfen değeri manuel girin." }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

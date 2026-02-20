@@ -45,22 +45,27 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!ANTHROPIC_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'ANTHROPIC_API_KEY is not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const imageMediaType = mimeType || 'image/jpeg';
     console.log(`Recognizing meal from photo for user: ${userId}`);
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'x-api-key': ANTHROPIC_API_KEY,
         'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'claude-opus-4-6',
+        max_tokens: 1024,
         messages: [
           {
             role: 'user',
@@ -100,11 +105,13 @@ KURALLAR:
 8. Tüm yiyecek adlarını Türkçe yaz.`
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${imageMediaType};base64,${imageBase64}`
-                }
-              }
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: imageMediaType,
+                  data: imageBase64,
+                },
+              },
             ]
           }
         ],
@@ -121,10 +128,10 @@ KURALLAR:
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (aiResponse.status === 402) {
+      if (aiResponse.status === 401) {
         return new Response(
-          JSON.stringify({ error: 'AI servisi kredi limiti aşıldı.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'API anahtarı geçersiz. Lütfen ANTHROPIC_API_KEY kontrol edin.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -132,7 +139,7 @@ KURALLAR:
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || '{}';
+    const content = aiData.content?.[0]?.text || '{}';
 
     console.log('AI response:', content);
 

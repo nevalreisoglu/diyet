@@ -137,8 +137,7 @@ serve(async (req) => {
   try {
     const { historyData } = await req.json() as { historyData: HistoryData };
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
     // Sort chronologically (oldest first)
     const sorted = [...historyData.dailyData].sort(
@@ -313,17 +312,51 @@ ${JSON.stringify(sorted.slice(-7).map(d => ({
 
 Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneriler üret.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    if (!ANTHROPIC_API_KEY) {
+      return new Response(JSON.stringify({
+        forecast: {
+          weeklyForecast: weeklyProjection,
+          monthlyForecast: monthlyProjection,
+          threeMonthForecast: threeMonthProjection,
+          insights: [
+            `Son ${recentWindow} gün ort. net enerji dengesi: ${stats.recentAvg.netBalance} kcal/gün`,
+            `Kalori trendi eğimi: ${calorieReg.slope > 0 ? 'artış' : 'azalış'} (R²=${balanceReg.r2.toFixed(2)})`,
+            `Su hedefinin %${stats.recentAvg.waterRatio}'ine ulaşıyorsunuz`,
+          ],
+          recommendations: [
+            `Günlük net enerji dengenizi ${Math.abs(stats.recentAvg.netBalance)} kcal ${stats.recentAvg.netBalance > 0 ? 'azaltmaya' : 'artırmaya'} çalışın.`,
+            stats.recentAvg.exercise < 30 ? "Günlük egzersizi en az 30 dakikaya çıkarın." : "Egzersiz rutininiz iyi, devam edin.",
+            stats.recentAvg.waterRatio < 80 ? "Su tüketimini hedefin %80'ine çıkarın." : "Su tüketiminiz yeterli.",
+          ],
+          confidenceLevel,
+          summary: `${sorted.length} günlük veriye dayalı istatistiksel model analizi`,
+          goalProgress,
+        },
+        ruleBasedForecast: {
+          weeklyForecast: ruleWeekly,
+          monthlyForecast: ruleMonthly,
+          threeMonthForecast: ruleThreeMonth,
+          avgDailyBalance: Math.round(avgNetBalance),
+        },
+        dataPointCount: sorted.length,
+        modelInfo: { type: "statistical_fallback", r2: balanceReg.r2 },
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
         "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-opus-4-6",
+        max_tokens: 1024,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
+          { role: "user", content: systemPrompt + "\n\n" + userMessage },
         ],
       }),
     });
@@ -334,13 +367,13 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Kredi yetersiz, lütfen hesabınızı kontrol edin." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (response.status === 401) {
+        return new Response(JSON.stringify({ error: "API anahtarı geçersiz. Lütfen ANTHROPIC_API_KEY kontrol edin." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("Claude API error:", response.status, errorText);
       // Fallback: return model projections without AI interpretation
       return new Response(JSON.stringify({
         forecast: {
@@ -369,7 +402,7 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
     }
 
     const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content;
+    const content = aiData.content?.[0]?.text;
 
     let aiInterpretation = { insights: [] as string[], recommendations: [] as string[], summary: "" };
     if (content) {

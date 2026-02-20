@@ -38,12 +38,22 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          if (error.message?.toLowerCase().includes('email not confirmed')) {
+            toast({
+              title: 'E-posta onaylanmamış',
+              description: 'Lütfen e-posta kutunuzu kontrol edin ve onay linkine tıklayın.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          throw error;
+        }
 
         toast({
           title: 'Hoş geldiniz!',
@@ -51,8 +61,8 @@ const Auth = () => {
         });
       } else {
         const redirectUrl = `${window.location.origin}/`;
-        
-        const { error } = await supabase.auth.signUp({
+
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -65,10 +75,18 @@ const Auth = () => {
 
         if (error) throw error;
 
-        toast({
-          title: 'Hesap oluşturuldu!',
-          description: 'Başarıyla kayıt oldunuz.',
-        });
+        // E-posta onayı gerekiyorsa kullanıcıyı bilgilendir
+        if (data.session === null && data.user?.email_confirmed_at === null) {
+          toast({
+            title: 'Hesap oluşturuldu!',
+            description: 'E-posta adresinize bir onay linki gönderdik. Lütfen e-postanızı kontrol edin.',
+          });
+        } else {
+          toast({
+            title: 'Hesap oluşturuldu!',
+            description: 'Başarıyla kayıt oldunuz.',
+          });
+        }
       }
     } catch (error: any) {
       console.error('Auth error:', error);
@@ -79,7 +97,9 @@ const Auth = () => {
       const code = error?.code || '';
       
       // Check for specific error conditions based on actual error message/code
-      if (msg.includes('invalid login credentials') || code === 'invalid_credentials') {
+      if (msg.includes('email not confirmed')) {
+        errorMessage = 'E-postanız onaylanmamış. Lütfen e-posta kutunuzu kontrol edin.';
+      } else if (msg.includes('invalid login credentials') || code === 'invalid_credentials') {
         errorMessage = 'E-posta veya şifre hatalı.';
       } else if (
         msg.includes('user already registered') || 

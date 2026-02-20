@@ -216,12 +216,17 @@ export const useWeightForecast = (userId: string | undefined) => {
       };
 
       // Call the edge function
+      const { data: { session } } = await supabase.auth.getSession();
       const { data, error: funcError } = await supabase.functions.invoke('forecast-weight', {
         body: { historyData },
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined,
       });
 
       if (funcError) {
-        throw new Error(funcError.message);
+        const msg = funcError.message || 'Edge function hatası';
+        throw new Error(msg);
       }
 
       if (data.error) {
