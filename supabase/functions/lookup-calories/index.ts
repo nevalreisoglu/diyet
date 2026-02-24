@@ -23,14 +23,13 @@ serve(async (req) => {
     }
 
     let userId = 'test-user-' + Math.random().toString(36).slice(2, 9);
+    let supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader || '' } } }
+    );
 
     if (!testMode) {
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_ANON_KEY')!,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-
       const token = authHeader!.replace('Bearer ', '');
       const { data: authData, error: authError } = await supabaseClient.auth.getUser(token);
       if (authError || !authData?.user) {
