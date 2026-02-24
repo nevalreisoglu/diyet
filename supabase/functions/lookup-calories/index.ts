@@ -26,8 +26,13 @@ serve(async (req) => {
     }
 
     const { foodName, correctedCalories } = body;
+    console.log("Body parsed:", { foodName: foodName?.substring?.(0, 20), correctedCalories });
+
     const authHeader = req.headers.get('Authorization');
+    console.log("Auth header present:", !!authHeader);
+
     const testMode = Deno.env.get('FUNCTION_TEST_MODE') === 'true';
+    console.log("Test mode:", testMode);
 
     // In test mode, skip auth entirely
     if (testMode) {
@@ -52,18 +57,24 @@ serve(async (req) => {
     }
 
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log("Auth failed: no Bearer token");
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log("Auth check passed");
+
     let userId = 'test-user-' + Math.random().toString(36).slice(2, 9);
+    console.log("Creating Supabase client with userId:", userId);
+
     let supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader || '' } } }
     );
+    console.log("Supabase client created");
 
     if (!foodName || typeof foodName !== 'string') {
       return new Response(
@@ -229,6 +240,8 @@ Kullanıcı isteği: ${foodName}`
         ]
       }),
     });
+
+    console.log("Gemini API response status:", response.status, response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
