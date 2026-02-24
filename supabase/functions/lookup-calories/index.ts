@@ -13,12 +13,24 @@ serve(async (req) => {
   }
 
   try {
+    // Parse body ONCE
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error("Failed to parse request body:", e);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { foodName, correctedCalories } = body;
     const authHeader = req.headers.get('Authorization');
     const testMode = Deno.env.get('FUNCTION_TEST_MODE') === 'true';
 
     // In test mode, skip auth entirely
     if (testMode) {
-      const { foodName } = await req.json();
       if (!foodName || typeof foodName !== 'string') {
         return new Response(
           JSON.stringify({ error: 'Food name is required' }),
@@ -52,9 +64,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader || '' } } }
     );
-
-    // Auth kontrol kaldırıldı - test mode tüm auth'ı geçer
-    const { foodName, correctedCalories } = await req.json();
 
     if (!foodName || typeof foodName !== 'string') {
       return new Response(
