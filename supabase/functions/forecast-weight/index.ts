@@ -137,7 +137,7 @@ serve(async (req) => {
   try {
     const { historyData } = await req.json() as { historyData: HistoryData };
 
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
     // Sort chronologically (oldest first)
     const sorted = [...historyData.dailyData].sort(
@@ -312,7 +312,7 @@ ${JSON.stringify(sorted.slice(-7).map(d => ({
 
 Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneriler üret.`;
 
-    if (!ANTHROPIC_API_KEY) {
+    if (!GEMINI_API_KEY) {
       return new Response(JSON.stringify({
         forecast: {
           weeklyForecast: weeklyProjection,
@@ -345,19 +345,22 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
       });
     }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
       method: "POST",
       headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
+        "x-goog-api-key": GEMINI_API_KEY,
         "Content-Type": "application/json",
-        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-opus-4-6",
-        max_tokens: 1024,
-        messages: [
-          { role: "user", content: systemPrompt + "\n\n" + userMessage },
-        ],
+        contents: [
+          {
+            parts: [
+              {
+                text: systemPrompt + "\n\n" + userMessage
+              }
+            ]
+          }
+        ]
       }),
     });
 
@@ -367,13 +370,13 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 401) {
-        return new Response(JSON.stringify({ error: "API anahtarı geçersiz. Lütfen ANTHROPIC_API_KEY kontrol edin." }), {
+      if (response.status === 401 || response.status === 403) {
+        return new Response(JSON.stringify({ error: "API anahtarı geçersiz. Lütfen GEMINI_API_KEY kontrol edin." }), {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
-      console.error("Claude API error:", response.status, errorText);
+      console.error("Gemini API error:", response.status, errorText);
       // Fallback: return model projections without AI interpretation
       return new Response(JSON.stringify({
         forecast: {
@@ -402,7 +405,8 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
     }
 
     const aiData = await response.json();
-    const content = aiData.content?.[0]?.text;
+    const candidate = aiData.candidates?.[0];
+    const content = candidate?.content?.parts?.[0]?.text;
 
     let aiInterpretation = { insights: [] as string[], recommendations: [] as string[], summary: "" };
     if (content) {
