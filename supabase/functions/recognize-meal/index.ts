@@ -45,10 +45,10 @@ serve(async (req) => {
       );
     }
 
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!ANTHROPIC_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'ANTHROPIC_API_KEY is not configured' }),
+        JSON.stringify({ error: 'GEMINI_API_KEY is not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -56,22 +56,17 @@ serve(async (req) => {
     const imageMediaType = mimeType || 'image/jpeg';
     console.log(`Recognizing meal from photo for user: ${userId}`);
 
-    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const aiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
       method: 'POST',
       headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
+        'x-goog-api-key': GEMINI_API_KEY,
         'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-6',
-        max_tokens: 1024,
-        messages: [
+        contents: [
           {
-            role: 'user',
-            content: [
+            parts: [
               {
-                type: 'text',
                 text: `Sen bir profesyonel beslenme uzmanısın. Bu fotoğraftaki yiyecekleri tanımla ve her birinin besin değerlerini hesapla.
 
 Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
@@ -105,16 +100,14 @@ KURALLAR:
 8. Tüm yiyecek adlarını Türkçe yaz.`
               },
               {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: imageMediaType,
+                inlineData: {
+                  mimeType: imageMediaType,
                   data: imageBase64,
-                },
-              },
+                }
+              }
             ]
           }
-        ],
+        ]
       }),
     });
 
@@ -128,9 +121,9 @@ KURALLAR:
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (aiResponse.status === 401) {
+      if (aiResponse.status === 401 || aiResponse.status === 403) {
         return new Response(
-          JSON.stringify({ error: 'API anahtarı geçersiz. Lütfen ANTHROPIC_API_KEY kontrol edin.' }),
+          JSON.stringify({ error: 'API anahtarı geçersiz. Lütfen GEMINI_API_KEY kontrol edin.' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -139,7 +132,8 @@ KURALLAR:
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.content?.[0]?.text || '{}';
+    const candidate = aiData.candidates?.[0];
+    const content = candidate?.content?.parts?.[0]?.text || '{}';
 
     console.log('AI response:', content);
 

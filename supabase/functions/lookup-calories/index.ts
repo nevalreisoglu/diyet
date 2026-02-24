@@ -86,9 +86,9 @@ serve(async (req) => {
       );
     }
 
-    // Step 2: AI lookup via Anthropic Claude
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
+    // Step 2: AI lookup via Google Gemini
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       return new Response(
         JSON.stringify({ error: "AI servisi yapılandırılmamış. Lütfen değeri manuel girin." }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -97,17 +97,18 @@ serve(async (req) => {
 
     console.log(`AI lookup for: ${foodName} (user: ${userId})`);
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
       method: "POST",
       headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "x-goog-api-key": GEMINI_API_KEY,
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
-        max_tokens: 1024,
-        system: `Sen bir profesyonel beslenme uzmanı ve kalori veritabanısın. Kullanıcı sana bir yiyecek/içecek adı verecek ve sen USDA, Türk Gıda Kompozisyon veritabanı ve güvenilir beslenme kaynaklarına dayalı olarak kalori değerini döndüreceksin.
+        contents: [
+          {
+            parts: [
+              {
+                text: `Sen bir profesyonel beslenme uzmanı ve kalori veritabanısın. Kullanıcı sana bir yiyecek/içecek adı verecek ve sen USDA, Türk Gıda Kompozisyon veritabanı ve güvenilir beslenme kaynaklarına dayalı olarak kalori değerini döndüreceksin.
 
 KURALLAR:
 1. lookup_calories fonksiyonunu kullanarak sonucu döndür.
@@ -162,45 +163,48 @@ TÜRK YEMEKLERİ REFERANS (100g veya 1 porsiyon):
 - Künefe (1 porsiyon): 450
 - Sütlaç (1 kase): 200
 - Kazandibi (1 porsiyon): 220
-- Lokum (2 adet): 100`,
-        messages: [
-          {
-            role: "user",
-            content: foodName
+- Lokum (2 adet): 100
+
+Kullanıcı isteği: ${foodName}`
+              }
+            ]
           }
         ],
         tools: [
           {
-            name: "lookup_calories",
-            description: "Yiyeceğin kalori bilgisini döndür",
-            input_schema: {
-              type: "object",
-              properties: {
-                calories: {
-                  type: "integer",
-                  description: "Kalori değeri (kcal cinsinden)"
-                },
-                portion: {
-                  type: "string",
-                  description: "Hesaplanan porsiyon açıklaması, örn: '1 orta boy (150g)'"
-                },
-                confidence: {
-                  type: "string",
-                  enum: ["high", "medium", "low"],
-                  description: "Değerin güvenilirlik düzeyi"
+            functionDeclarations: [
+              {
+                name: "lookup_calories",
+                description: "Yiyeceğin kalori bilgisini döndür",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    calories: {
+                      type: "integer",
+                      description: "Kalori değeri (kcal cinsinden)"
+                    },
+                    portion: {
+                      type: "string",
+                      description: "Hesaplanan porsiyon açıklaması, örn: '1 orta boy (150g)'"
+                    },
+                    confidence: {
+                      type: "string",
+                      enum: ["high", "medium", "low"],
+                      description: "Değerin güvenilirlik düzeyi"
+                    }
+                  },
+                  required: ["calories", "portion", "confidence"]
                 }
-              },
-              required: ["calories", "portion", "confidence"]
-            }
+              }
+            ]
           }
-        ],
-        tool_choice: { type: "tool", name: "lookup_calories" },
+        ]
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Anthropic API error:", response.status, errorText);
+      console.error("Gemini API error:", response.status, errorText);
 
       if (response.status === 429) {
         return new Response(
@@ -208,7 +212,7 @@ TÜRK YEMEKLERİ REFERANS (100g veya 1 porsiyon):
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
+      if (response.status === 402 || response.status === 403) {
         return new Response(
           JSON.stringify({ error: "AI servisi şu an kullanılamıyor." }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -223,27 +227,31 @@ TÜRK YEMEKLERİ REFERANS (100g veya 1 porsiyon):
 
     const aiData = await response.json();
 
-    // Parse tool use response (Anthropic format)
+    // Parse tool use response (Gemini format)
     let calories: number | null = null;
     let portion = '';
     let confidence = 'medium';
 
-    const toolUseBlock = aiData.content?.find((block: { type: string }) => block.type === 'tool_use');
-    if (toolUseBlock?.input) {
+    const candidate = aiData.candidates?.[0];
+    const functionCall = candidate?.content?.parts?.find((part: any) => part.functionCall);
+
+    if (functionCall?.functionCall?.args) {
       try {
-        calories = toolUseBlock.input.calories;
-        portion = toolUseBlock.input.portion || '';
-        confidence = toolUseBlock.input.confidence || 'medium';
+        calories = functionCall.functionCall.args.calories;
+        portion = functionCall.functionCall.args.portion || '';
+        confidence = functionCall.functionCall.args.confidence || 'medium';
       } catch (e) {
-        console.error("Failed to parse tool use input:", e);
+        console.error("Failed to parse function call args:", e);
       }
     }
 
-    // Fallback: parse from text content if tool use failed
+    // Fallback: parse from text content if function call failed
     if (!calories) {
-      const textBlock = aiData.content?.find((block: { type: string }) => block.type === 'text');
-      const match = textBlock?.text?.match(/\d+/);
-      calories = match ? parseInt(match[0], 10) : null;
+      const textPart = candidate?.content?.parts?.find((part: any) => part.text);
+      if (textPart?.text) {
+        const match = textPart.text.match(/\d+/);
+        calories = match ? parseInt(match[0], 10) : null;
+      }
     }
 
     if (!calories || isNaN(calories)) {

@@ -51,33 +51,28 @@ serve(async (req) => {
       );
     }
 
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!ANTHROPIC_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'ANTHROPIC_API_KEY is not configured' }),
+        JSON.stringify({ error: 'GEMINI_API_KEY is not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Parsing PDF with AI vision...');
+    console.log('Parsing PDF with Gemini vision...');
 
     // Use multimodal AI to extract food items AND meal schedules from PDF
-    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const aiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
       method: 'POST',
       headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
+        'x-goog-api-key': GEMINI_API_KEY,
         'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-6',
-        max_tokens: 1024,
-        messages: [
+        contents: [
           {
-            role: 'user',
-            content: [
+            parts: [
               {
-                type: 'text',
                 text: `Sen bir beslenme uzmanısın. Bu PDF dosyasındaki yiyecek listesini ve öğün saatlerini analiz et.
 
 Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
@@ -108,30 +103,29 @@ Kurallar:
 - Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et`
               },
               {
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: 'application/pdf',
+                inlineData: {
+                  mimeType: 'application/pdf',
                   data: pdfBase64,
-                },
-              },
+                }
+              }
             ]
           }
-        ],
+        ]
       }),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('AI API error:', aiResponse.status, errorText);
-      if (aiResponse.status === 401) {
-        throw new Error('API anahtarı geçersiz. Lütfen ANTHROPIC_API_KEY kontrol edin.');
+      if (aiResponse.status === 401 || aiResponse.status === 403) {
+        throw new Error('API anahtarı geçersiz. Lütfen GEMINI_API_KEY kontrol edin.');
       }
       throw new Error('AI API request failed');
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.content?.[0]?.text || '{}';
+    const candidate = aiData.candidates?.[0];
+    const content = candidate?.content?.parts?.[0]?.text || '{}';
     
     console.log('AI response:', content);
 
