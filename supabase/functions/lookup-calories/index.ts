@@ -136,7 +136,7 @@ serve(async (req) => {
     console.log(`AI lookup for: ${foodName} (user: ${userId})`);
     console.log(`GEMINI_API_KEY: ${GEMINI_API_KEY?.substring(0, 10)}...`);
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
       method: "POST",
       headers: {
         "x-goog-api-key": GEMINI_API_KEY,
