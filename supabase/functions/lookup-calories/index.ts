@@ -93,6 +93,21 @@ serve(async (req) => {
 
     // Step 2: AI lookup via Google Gemini
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+
+    // Test mode: return dummy response if no API key
+    if (testMode && !GEMINI_API_KEY) {
+      return new Response(
+        JSON.stringify({
+          calories: 200,
+          portion: "test portion",
+          confidence: "high",
+          source: "test_mode",
+          cached: false
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!GEMINI_API_KEY) {
       return new Response(
         JSON.stringify({ error: "AI servisi yapılandırılmamış. Lütfen değeri manuel girin." }),
