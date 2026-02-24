@@ -113,6 +113,7 @@ serve(async (req) => {
     }
 
     console.log(`AI lookup for: ${foodName} (user: ${userId})`);
+    console.log(`GEMINI_API_KEY: ${GEMINI_API_KEY?.substring(0, 10)}...`);
 
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
       method: "POST",
@@ -221,7 +222,8 @@ Kullanıcı isteği: ${foodName}`
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
+      console.error("Gemini API error:", response.status);
+      console.error("Error response:", errorText);
 
       if (response.status === 429) {
         return new Response(
@@ -243,6 +245,7 @@ Kullanıcı isteği: ${foodName}`
     }
 
     const aiData = await response.json();
+    console.log("Gemini response:", JSON.stringify(aiData).substring(0, 500));
 
     // Parse tool use response (Gemini format)
     let calories: number | null = null;
@@ -250,6 +253,7 @@ Kullanıcı isteği: ${foodName}`
     let confidence = 'medium';
 
     const candidate = aiData.candidates?.[0];
+    console.log("Candidate:", JSON.stringify(candidate).substring(0, 300));
     const functionCall = candidate?.content?.parts?.find((part: any) => part.functionCall);
 
     if (functionCall?.functionCall?.args) {
