@@ -345,7 +345,7 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
       });
     }
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
       method: "POST",
       headers: {
         "x-goog-api-key": GEMINI_API_KEY,
