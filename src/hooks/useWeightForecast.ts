@@ -233,6 +233,7 @@ export const useWeightForecast = (userId: string | undefined) => {
         throw new Error(data.error);
       }
 
+      console.log('API Response full data:', data);
       setForecast(data.forecast);
       setRuleBasedForecast(data.ruleBasedForecast || null);
       setModelInfo(data.modelInfo || null);
