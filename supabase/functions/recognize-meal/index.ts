@@ -56,7 +56,7 @@ serve(async (req) => {
     const imageMediaType = mimeType || 'image/jpeg';
     console.log(`Recognizing meal from photo for user: ${userId}`);
 
-    const aiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
+    const aiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
       method: 'POST',
       headers: {
         'x-goog-api-key': GEMINI_API_KEY,
