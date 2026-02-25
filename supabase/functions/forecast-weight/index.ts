@@ -397,6 +397,12 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           summary: `${sorted.length} günlük veriye dayalı prediktif model analizi (R²=${balanceReg.r2.toFixed(2)})`,
           goalProgress,
         },
+        ruleBasedForecast: {
+          weeklyForecast: ruleWeekly,
+          monthlyForecast: ruleMonthly,
+          threeMonthForecast: ruleThreeMonth,
+          avgDailyBalance: Math.round(avgNetBalance),
+        },
         dataPointCount: sorted.length,
         modelInfo: { type: "statistical_fallback", r2: balanceReg.r2, trendSlope: balanceReg.slope, ewmaLatest: stats.ewmaLatest.balance, confidenceBasis: confidenceLevel },
       }), {
