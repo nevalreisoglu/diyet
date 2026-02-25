@@ -201,13 +201,13 @@ serve(async (req) => {
 
     // ─── Rule-based projections (Simple 7700 kcal = 1 kg) ───
     const avgNetBalance = netBalances.reduce((a, b) => a + b, 0) / netBalances.length;
-    function ruleBasedProject(days: number): { kg: number; direction: "loss" | "gain" | "stable" } {
+    const ruleBasedProject = (days: number): { kg: number; direction: "loss" | "gain" | "stable" } => {
       const totalBalance = avgNetBalance * days;
       const kgChange = totalBalance / 7700;
       const absKg = Math.abs(Number(kgChange.toFixed(2)));
       const direction = kgChange > 0.05 ? "gain" : kgChange < -0.05 ? "loss" : "stable";
       return { kg: absKg, direction };
-    }
+    };
     const ruleWeekly = ruleBasedProject(7);
     const ruleMonthly = ruleBasedProject(30);
     const ruleThreeMonth = ruleBasedProject(90);
@@ -339,7 +339,13 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           avgDailyBalance: Math.round(avgNetBalance),
         },
         dataPointCount: sorted.length,
-        modelInfo: { type: "statistical_fallback", r2: balanceReg.r2, trendSlope: balanceReg.slope, ewmaLatest: stats.ewmaLatest.balance, confidenceBasis: confidenceLevel },
+        modelInfo: {
+          type: "statistical_fallback",
+          r2: balanceReg.r2 || 0,
+          trendSlope: balanceReg.slope || 0,
+          ewmaLatest: stats.ewmaLatest?.balance || 0,
+          confidenceBasis: confidenceLevel
+        },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -404,7 +410,13 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           avgDailyBalance: Math.round(avgNetBalance),
         },
         dataPointCount: sorted.length,
-        modelInfo: { type: "statistical_fallback", r2: balanceReg.r2, trendSlope: balanceReg.slope, ewmaLatest: stats.ewmaLatest.balance, confidenceBasis: confidenceLevel },
+        modelInfo: {
+          type: "statistical_fallback",
+          r2: balanceReg.r2 || 0,
+          trendSlope: balanceReg.slope || 0,
+          ewmaLatest: stats.ewmaLatest?.balance || 0,
+          confidenceBasis: confidenceLevel
+        },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -455,9 +467,9 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
       dataPointCount: sorted.length,
       modelInfo: {
         type: "predictive_blend",
-        r2: balanceReg.r2,
-        trendSlope: balanceReg.slope,
-        ewmaLatest: stats.ewmaLatest.balance,
+        r2: balanceReg.r2 || 0,
+        trendSlope: balanceReg.slope || 0,
+        ewmaLatest: stats.ewmaLatest?.balance || 0,
         confidenceBasis: confidenceLevel,
       },
     }), {
