@@ -76,7 +76,15 @@ export function useSubscription(userId?: string) {
 
   // LemonSqueezy checkout URL'i al → yönlendir
   const createCheckout = useCallback(async (): Promise<string> => {
-    const { data, error } = await supabase.functions.invoke('create-checkout');
+    // Session'ı tazele, süresi dolmuşsa yenile
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error('Oturum bulunamadı, lütfen tekrar giriş yapın');
+    }
+
+    const { data, error } = await supabase.functions.invoke('create-checkout', {
+      headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+    });
     if (error || !data?.url) throw new Error(error?.message || 'Checkout URL alınamadı');
     return data.url as string;
   }, []);
