@@ -8,11 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User, Crown, Check, X } from 'lucide-react';
+import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User, Crown, Check, ExternalLink } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSubscription } from '@/hooks/useSubscription';
 import { UpgradeDialog } from '@/components/UpgradeDialog';
-import { useState } from 'react';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -31,7 +30,17 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const { isPremium, activate, cancel } = useSubscription();
+  const { isPremium, subscription, createCheckout } = useSubscription(user?.id);
+
+  // LemonSqueezy ödeme sonrası yönlendirme algılama
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgraded') === '1') {
+      toast({ title: 'Premium\'a hoş geldiniz! 🎉', description: 'Tüm özellikler artık aktif.' });
+      // URL'den parametreyi temizle
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -145,7 +154,9 @@ const Settings = () => {
             </CardTitle>
             <CardDescription>
               {isPremium
-                ? 'Tüm premium özellikler aktif.'
+                ? subscription?.current_period_end
+                  ? `Yenileme tarihi: ${new Date(subscription.current_period_end).toLocaleDateString('tr-TR')}`
+                  : 'Tüm premium özellikler aktif.'
                 : 'AI fotoğraf tanıma, metabolik ikiz ve daha fazlası için Premium\'a geçin.'}
             </CardDescription>
           </CardHeader>
@@ -160,9 +171,17 @@ const Settings = () => {
                     </div>
                   ))}
                 </div>
-                <Button variant="outline" size="sm" onClick={cancel} className="mt-2 text-muted-foreground">
-                  Aboneliği İptal Et
-                </Button>
+                {subscription?.customer_portal_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-muted-foreground"
+                    onClick={() => window.open(subscription.customer_portal_url!, '_blank')}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Aboneliği Yönet
+                  </Button>
+                )}
               </div>
             ) : (
               <Button className="gradient-primary text-primary-foreground gap-2" onClick={() => setUpgradeOpen(true)}>
@@ -173,7 +192,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} onActivate={activate} />
+        <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} createCheckout={createCheckout} />
 
         <Card>
           <CardHeader>

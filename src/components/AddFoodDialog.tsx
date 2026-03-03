@@ -61,7 +61,7 @@ export const AddFoodDialog = ({
   const [originalCalories, setOriginalCalories] = useState<number | null>(null);
   const { toast } = useToast();
   const { foods: frequentFoods, loading: loadingFrequent } = useFrequentFoods(userId, open ? mealType : null);
-  const { isPremium, activate } = useSubscription();
+  const { isPremium, createCheckout } = useSubscription(userId);
 
   // Fetch custom foods when dialog opens
   useEffect(() => {
@@ -320,7 +320,7 @@ export const AddFoodDialog = ({
             <TabsContent value="photo" className="mt-0">
               <PremiumGate
                 isPremium={isPremium}
-                onActivate={activate}
+                createCheckout={createCheckout}
                 featureLabel="AI Fotoğraf Tanıma"
                 compact
                 bullets={[

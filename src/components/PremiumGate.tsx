@@ -5,17 +5,17 @@ import { UpgradeDialog } from '@/components/UpgradeDialog';
 
 interface PremiumGateProps {
   isPremium: boolean;
-  onActivate: () => void;
+  createCheckout: () => Promise<string>;
   children: React.ReactNode;
   featureLabel: string;
   bullets?: string[];
-  /** If true, renders a compact inline lock (e.g. inside a tab) */
+  /** Kompakt mod: sekme/kutu içi küçük kilit */
   compact?: boolean;
 }
 
 export function PremiumGate({
   isPremium,
-  onActivate,
+  createCheckout,
   children,
   featureLabel,
   bullets,
@@ -30,7 +30,6 @@ export function PremiumGate({
   return (
     <>
       {compact ? (
-        /* Compact mode — used inside tabs / small containers */
         <div className="flex flex-col items-center justify-center py-8 gap-3 text-center">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Lock className="h-5 w-5 text-primary" />
@@ -45,7 +44,6 @@ export function PremiumGate({
           </Button>
         </div>
       ) : (
-        /* Full card mode — used for sections on pages */
         <div className="glass-card rounded-2xl p-6 flex flex-col items-center text-center gap-4 border border-primary/20">
           <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-glow">
             <Lock className="h-6 w-6 text-primary-foreground" />
@@ -67,14 +65,21 @@ export function PremiumGate({
               ))}
             </ul>
           )}
-          <Button className="gradient-primary text-primary-foreground gap-2 w-full max-w-xs" onClick={openDialog}>
+          <Button
+            className="gradient-primary text-primary-foreground gap-2 w-full max-w-xs"
+            onClick={openDialog}
+          >
             <Crown className="h-4 w-4" />
             Premium&apos;a Geç — $4.99/ay
           </Button>
         </div>
       )}
 
-      <UpgradeDialog open={dialogOpen} onOpenChange={setDialogOpen} onActivate={onActivate} />
+      <UpgradeDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        createCheckout={createCheckout}
+      />
     </>
   );
 }

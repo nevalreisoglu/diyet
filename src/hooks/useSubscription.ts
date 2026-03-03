@@ -1,31 +1,85 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-const KEY = 'diyet_premium';
+const LS_KEY = 'diyet_premium';
 
-// Module-level pub-sub so all instances on the same page stay in sync
-const subscribers = new Set<() => void>();
-const notify = () => subscribers.forEach((fn) => fn());
+interface Subscription {
+  plan: string;
+  status: string;
+  current_period_end: string | null;
+  customer_portal_url: string | null;
+}
 
-export function useSubscription() {
-  const [isPremium, setIsPremium] = useState(() => localStorage.getItem(KEY) === 'true');
+export function useSubscription(userId?: string) {
+  // localStorage fast-path: premium kullanıcılar DB cevabını beklemeden içeriği görür
+  const [isPremiumLocal]   = useState(() => localStorage.getItem(LS_KEY) === 'true');
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState(!!userId);
 
   useEffect(() => {
-    const handler = () => setIsPremium(localStorage.getItem(KEY) === 'true');
-    subscribers.add(handler);
-    return () => { subscribers.delete(handler); };
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchSub = async () => {
+      const { data } = await supabase
+        .from('subscriptions')
+        .select('plan, status, current_period_end, customer_portal_url')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (!cancelled) {
+        setSubscription(data as Subscription | null);
+        setLoading(false);
+      }
+    };
+
+    fetchSub();
+
+    // Webhook sonrası DB değiştiğinde Realtime ile anında güncelle
+    const channel = supabase
+      .channel(`subscription:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions', filter: `user_id=eq.${userId}` },
+        (payload) => setSubscription(payload.new as Subscription)
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  // DB doğrulamasından gelen gerçek premium durumu
+  const isPremiumDB =
+    subscription?.plan === 'premium' &&
+    subscription?.status === 'active' &&
+    (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date());
+
+  // Yüklenirken localStorage'a güven, sonra DB'yi kullan
+  const isPremium = loading ? isPremiumLocal : isPremiumDB;
+
+  // DB cevabı gelince localStorage'ı senkronize et (yanlış değer kalmasın)
+  useEffect(() => {
+    if (!loading) {
+      if (isPremiumDB) {
+        localStorage.setItem(LS_KEY, 'true');
+      } else {
+        localStorage.removeItem(LS_KEY);
+      }
+    }
+  }, [isPremiumDB, loading]);
+
+  // LemonSqueezy checkout URL'i al → yönlendir
+  const createCheckout = useCallback(async (): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke('create-checkout');
+    if (error || !data?.url) throw new Error(error?.message || 'Checkout URL alınamadı');
+    return data.url as string;
   }, []);
 
-  const activate = () => {
-    localStorage.setItem(KEY, 'true');
-    setIsPremium(true);
-    notify();
-  };
-
-  const cancel = () => {
-    localStorage.removeItem(KEY);
-    setIsPremium(false);
-    notify();
-  };
-
-  return { isPremium, activate, cancel };
+  return { isPremium, loading, subscription, createCheckout };
 }

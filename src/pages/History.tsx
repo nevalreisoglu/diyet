@@ -21,7 +21,7 @@ const History = () => {
   const { addFoodToDate, removeFoodFromDate, addWaterToDate, removeWaterFromDate } = useHistoryMutations(user?.id, refetch);
   
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
-  const { isPremium, activate } = useSubscription();
+  const { isPremium, createCheckout } = useSubscription(user?.id);
   const [addFoodDialogOpen, setAddFoodDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null);
@@ -118,7 +118,7 @@ const History = () => {
             {/* Weekly Charts */}
             <PremiumGate
               isPremium={isPremium}
-              onActivate={activate}
+              createCheckout={createCheckout}
               featureLabel="Haftalık Grafikler"
               bullets={[
                 '7 günlük kalori trend grafiği',

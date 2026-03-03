@@ -53,7 +53,7 @@ const Index = () => {
   const { beverages } = useBeverageData(user?.id);
   const { duration: exerciseMinutes } = useExerciseData(user?.id);
   const { todayAchievements, checkAndAwardAchievements } = useAchievements(user?.id);
-  const { isPremium, activate } = useSubscription();
+  const { isPremium, createCheckout } = useSubscription(user?.id);
 
   // Calculate totalCalories early for use in achievements
   const totalCalories = getTotalCalories();
@@ -142,7 +142,7 @@ const Index = () => {
         {/* Achievements Section */}
         <PremiumGate
           isPremium={isPremium}
-          onActivate={activate}
+          createCheckout={createCheckout}
           featureLabel="Başarı Rozetleri"
           bullets={[
             'Günlük spor, kalori ve su hedeflerini takip et',
@@ -158,7 +158,7 @@ const Index = () => {
           <h2 className="text-lg font-semibold text-foreground">AI Kilo Tahmini</h2>
           <PremiumGate
             isPremium={isPremium}
-            onActivate={activate}
+            createCheckout={createCheckout}
             featureLabel="AI Kilo Tahmini"
             bullets={[
               '90 günlük veriye dayalı tahminler',

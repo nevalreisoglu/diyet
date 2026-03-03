@@ -16,7 +16,7 @@ const MetabolicTwin = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { profile, recentMetrics, loading } = useMetabolicProfile(user?.id);
-  const { isPremium, activate } = useSubscription();
+  const { isPremium, createCheckout } = useSubscription(user?.id);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -51,7 +51,7 @@ const MetabolicTwin = () => {
 
         <PremiumGate
           isPremium={isPremium}
-          onActivate={activate}
+          createCheckout={createCheckout}
           featureLabel="Metabolik İkiz"
           bullets={[
             'BMR ve TDEE hesaplamaları',
