@@ -1,13 +1,32 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.9ee1757f3e964854b28544dacc27e92a',
-  appName: 'diyet',
+  appId: 'app.beslenme.gunlugu',
+  appName: 'Beslenme Günlüğü',
   webDir: 'dist',
-  server: {
-    url: 'https://9ee1757f-3e96-4854-b285-44dacc27e92a.lovableproject.com?forceHideBadge=true',
-    cleartext: true
-  }
+  plugins: {
+    StatusBar: {
+      style: 'DEFAULT',
+      backgroundColor: '#ffffff',
+    },
+    SplashScreen: {
+      launchShowDuration: 2000,
+      backgroundColor: '#f7faf4',
+      showSpinner: false,
+    },
+    Keyboard: {
+      resize: 'body',
+      resizeOnFullScreen: true,
+    },
+  },
+  android: {
+    allowMixedContent: false,
+    backgroundColor: '#f7faf4',
+  },
+  ios: {
+    contentInset: 'always',
+    backgroundColor: '#f7faf4',
+  },
 };
 
 export default config;
