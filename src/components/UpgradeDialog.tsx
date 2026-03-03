@@ -37,9 +37,10 @@ export function UpgradeDialog({ open, onOpenChange, createCheckout }: UpgradeDia
       // Aynı pencerede yönlendir (PWA home screen ile uyumlu)
       window.location.href = url;
     } catch (e) {
+      console.error('Checkout error:', e);
       toast({
         title: 'Hata',
-        description: 'Ödeme sayfası açılamadı. Lütfen tekrar deneyin.',
+        description: e instanceof Error ? e.message : 'Ödeme sayfası açılamadı.',
         variant: 'destructive',
       });
       setLoading(false);
