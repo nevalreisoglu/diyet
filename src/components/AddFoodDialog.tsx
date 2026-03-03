@@ -12,6 +12,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { PhotoFoodRecognizer } from '@/components/PhotoFoodRecognizer';
 import { VoiceFoodInput } from '@/components/VoiceFoodInput';
 import { useFrequentFoods } from '@/hooks/useFrequentFoods';
+import { useSubscription } from '@/hooks/useSubscription';
+import { PremiumGate } from '@/components/PremiumGate';
+import { Lock } from 'lucide-react';
 
 interface AddFoodDialogProps {
   open: boolean;
@@ -58,6 +61,7 @@ export const AddFoodDialog = ({
   const [originalCalories, setOriginalCalories] = useState<number | null>(null);
   const { toast } = useToast();
   const { foods: frequentFoods, loading: loadingFrequent } = useFrequentFoods(userId, open ? mealType : null);
+  const { isPremium, activate } = useSubscription();
 
   // Fetch custom foods when dialog opens
   useEffect(() => {
@@ -225,7 +229,7 @@ export const AddFoodDialog = ({
               <TabsTrigger value="custom">Listem</TabsTrigger>
               <TabsTrigger value="default">Genel</TabsTrigger>
               <TabsTrigger value="photo" className="flex items-center gap-1">
-                <Camera className="h-3 w-3" />
+                {isPremium ? <Camera className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
                 Foto
               </TabsTrigger>
               <TabsTrigger value="voice" className="flex items-center gap-1">
@@ -314,22 +318,34 @@ export const AddFoodDialog = ({
             </TabsContent>
 
             <TabsContent value="photo" className="mt-0">
-              <Label className="text-muted-foreground text-sm">Yemeğin fotoğrafını çekin veya galeriden seçin</Label>
-              <div className="mt-2">
-                <PhotoFoodRecognizer
-                  onAddFood={(food) => {
-                    if (mealType) {
-                      onAddFood(mealType, food);
-                    }
-                  }}
-                  onAddAllFoods={(foods) => {
-                    if (mealType) {
-                      foods.forEach(food => onAddFood(mealType, food));
-                      onOpenChange(false);
-                    }
-                  }}
-                />
-              </div>
+              <PremiumGate
+                isPremium={isPremium}
+                onActivate={activate}
+                featureLabel="AI Fotoğraf Tanıma"
+                compact
+                bullets={[
+                  'Yemek fotoğrafından otomatik kalori tespiti',
+                  'Protein, karb ve yağ analizi',
+                  'Çoklu yemek tanıma',
+                ]}
+              >
+                <Label className="text-muted-foreground text-sm">Yemeğin fotoğrafını çekin veya galeriden seçin</Label>
+                <div className="mt-2">
+                  <PhotoFoodRecognizer
+                    onAddFood={(food) => {
+                      if (mealType) {
+                        onAddFood(mealType, food);
+                      }
+                    }}
+                    onAddAllFoods={(foods) => {
+                      if (mealType) {
+                        foods.forEach(food => onAddFood(mealType, food));
+                        onOpenChange(false);
+                      }
+                    }}
+                  />
+                </div>
+              </PremiumGate>
             </TabsContent>
 
             <TabsContent value="voice" className="mt-0">

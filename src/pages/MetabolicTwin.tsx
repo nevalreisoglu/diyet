@@ -9,11 +9,14 @@ import { WhatIfSimulator } from '@/components/metabolic/WhatIfSimulator';
 import { MetabolicInsights } from '@/components/metabolic/MetabolicInsights';
 import { Loader2, Dna } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSubscription } from '@/hooks/useSubscription';
+import { PremiumGate } from '@/components/PremiumGate';
 
 const MetabolicTwin = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { profile, recentMetrics, loading } = useMetabolicProfile(user?.id);
+  const { isPremium, activate } = useSubscription();
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -46,30 +49,42 @@ const MetabolicTwin = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="profile">Profil</TabsTrigger>
-            <TabsTrigger value="score">Skor</TabsTrigger>
-            <TabsTrigger value="whatif">What-If</TabsTrigger>
-            <TabsTrigger value="insights">Analiz</TabsTrigger>
-          </TabsList>
+        <PremiumGate
+          isPremium={isPremium}
+          onActivate={activate}
+          featureLabel="Metabolik İkiz"
+          bullets={[
+            'BMR ve TDEE hesaplamaları',
+            'Metabolik skor takibi (kalori, su, spor, kafein)',
+            'What-if senaryoları ("500 kcal azaltsam?")',
+            'Kişiselleştirilmiş metabolik içgörüler',
+          ]}
+        >
+          <Tabs defaultValue="profile" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="profile">Profil</TabsTrigger>
+              <TabsTrigger value="score">Skor</TabsTrigger>
+              <TabsTrigger value="whatif">What-If</TabsTrigger>
+              <TabsTrigger value="insights">Analiz</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="profile">
-            <MetabolicProfileCard profile={profile} />
-          </TabsContent>
+            <TabsContent value="profile">
+              <MetabolicProfileCard profile={profile} />
+            </TabsContent>
 
-          <TabsContent value="score">
-            <MetabolicScoreCard profile={profile} recentMetrics={recentMetrics} />
-          </TabsContent>
+            <TabsContent value="score">
+              <MetabolicScoreCard profile={profile} recentMetrics={recentMetrics} />
+            </TabsContent>
 
-          <TabsContent value="whatif">
-            <WhatIfSimulator profile={profile} recentMetrics={recentMetrics} userId={user.id} />
-          </TabsContent>
+            <TabsContent value="whatif">
+              <WhatIfSimulator profile={profile} recentMetrics={recentMetrics} userId={user.id} />
+            </TabsContent>
 
-          <TabsContent value="insights">
-            <MetabolicInsights profile={profile} recentMetrics={recentMetrics} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="insights">
+              <MetabolicInsights profile={profile} recentMetrics={recentMetrics} />
+            </TabsContent>
+          </Tabs>
+        </PremiumGate>
       </main>
     </div>
   );

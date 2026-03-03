@@ -11,6 +11,8 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { mealTypeLabels, mealTypeIcons, MealType } from '@/types/nutrition';
 import { exportHistoryToExcel } from '@/utils/exportToExcel';
+import { useSubscription } from '@/hooks/useSubscription';
+import { PremiumGate } from '@/components/PremiumGate';
 
 const History = () => {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ const History = () => {
   const { addFoodToDate, removeFoodFromDate, addWaterToDate, removeWaterFromDate } = useHistoryMutations(user?.id, refetch);
   
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const { isPremium, activate } = useSubscription();
   const [addFoodDialogOpen, setAddFoodDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null);
@@ -113,7 +116,18 @@ const History = () => {
         ) : (
           <>
             {/* Weekly Charts */}
-            <WeeklyCharts data={history} />
+            <PremiumGate
+              isPremium={isPremium}
+              onActivate={activate}
+              featureLabel="Haftalık Grafikler"
+              bullets={[
+                '7 günlük kalori trend grafiği',
+                '7 günlük egzersiz grafiği',
+                'Haftalık ortalama ve hedef karşılaştırması',
+              ]}
+            >
+              <WeeklyCharts data={history} />
+            </PremiumGate>
 
             <h3 className="text-lg font-semibold text-foreground pt-4">Günlük Detaylar</h3>
             <div className="space-y-3">
