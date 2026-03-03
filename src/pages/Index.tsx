@@ -22,6 +22,8 @@ import { useAchievements, AchievementType } from '@/hooks/useAchievements';
 import { MealType } from '@/types/nutrition';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSubscription } from '@/hooks/useSubscription';
+import { PremiumGate } from '@/components/PremiumGate';
 
 const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack1', 'snack2', 'snack3'];
 
@@ -51,6 +53,7 @@ const Index = () => {
   const { beverages } = useBeverageData(user?.id);
   const { duration: exerciseMinutes } = useExerciseData(user?.id);
   const { todayAchievements, checkAndAwardAchievements } = useAchievements(user?.id);
+  const { isPremium, createCheckout } = useSubscription(user?.id);
 
   // Calculate totalCalories early for use in achievements
   const totalCalories = getTotalCalories();
@@ -137,12 +140,35 @@ const Index = () => {
         />
 
         {/* Achievements Section */}
-        <AchievementBadges earnedTypes={earnedAchievementTypes} />
+        <PremiumGate
+          isPremium={isPremium}
+          createCheckout={createCheckout}
+          featureLabel="Başarı Rozetleri"
+          bullets={[
+            'Günlük spor, kalori ve su hedeflerini takip et',
+            'Her gün 4 farklı rozet kazanma şansı',
+            'İlerlemenizi görsel olarak takip edin',
+          ]}
+        >
+          <AchievementBadges earnedTypes={earnedAchievementTypes} />
+        </PremiumGate>
 
         {/* AI Weight Forecast Section */}
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-foreground">AI Kilo Tahmini</h2>
-          <WeightForecast userId={user?.id} />
+          <PremiumGate
+            isPremium={isPremium}
+            createCheckout={createCheckout}
+            featureLabel="AI Kilo Tahmini"
+            bullets={[
+              '90 günlük veriye dayalı tahminler',
+              '1 hafta, 1 ay ve 3 aylık projeksiyonlar',
+              'AI destekli model istatistikleri (R², EWMA)',
+              'Hedefinize ulaşma süresi tahmini',
+            ]}
+          >
+            <WeightForecast userId={user?.id} />
+          </PremiumGate>
         </section>
 
         {/* Trackers Section */}

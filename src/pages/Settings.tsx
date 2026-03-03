@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User } from 'lucide-react';
+import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User, Crown, Check, ExternalLink } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSubscription } from '@/hooks/useSubscription';
+import { UpgradeDialog } from '@/components/UpgradeDialog';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -27,6 +29,18 @@ const Settings = () => {
   const [age, setAge] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const { isPremium, subscription, createCheckout } = useSubscription(user?.id);
+
+  // LemonSqueezy ödeme sonrası yönlendirme algılama
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgraded') === '1') {
+      toast({ title: 'Premium\'a hoş geldiniz! 🎉', description: 'Tüm özellikler artık aktif.' });
+      // URL'den parametreyi temizle
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -130,6 +144,55 @@ const Settings = () => {
           <h1 className="text-2xl font-bold text-foreground">Ayarlar</h1>
           <p className="text-muted-foreground">Profil ve hedef ayarlarınızı yönetin</p>
         </div>
+
+        {/* Subscription Card */}
+        <Card className={isPremium ? 'border-yellow-500/40 bg-yellow-500/5' : ''}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className={`h-5 w-5 ${isPremium ? 'text-yellow-500' : 'text-muted-foreground'}`} />
+              {isPremium ? 'Premium Plan' : 'Ücretsiz Plan'}
+            </CardTitle>
+            <CardDescription>
+              {isPremium
+                ? subscription?.current_period_end
+                  ? `Yenileme tarihi: ${new Date(subscription.current_period_end).toLocaleDateString('tr-TR')}`
+                  : 'Tüm premium özellikler aktif.'
+                : 'AI fotoğraf tanıma, metabolik ikiz ve daha fazlası için Premium\'a geçin.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isPremium ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {['Yemek kaydı', 'Kalori takibi', 'AI fotoğraf tanıma', 'Haftalık grafikler', 'Metabolik ikiz', 'Kilo tahmini (AI)', 'Başarı rozetleri'].map((f) => (
+                    <div key={f} className="flex items-center gap-1.5 text-foreground">
+                      <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                      {f}
+                    </div>
+                  ))}
+                </div>
+                {subscription?.customer_portal_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-muted-foreground"
+                    onClick={() => window.open(subscription.customer_portal_url!, '_blank')}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Aboneliği Yönet
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Button className="gradient-primary text-primary-foreground gap-2" onClick={() => setUpgradeOpen(true)}>
+                <Crown className="h-4 w-4" />
+                Premium&apos;a Geç — $4.99/ay
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} createCheckout={createCheckout} />
 
         <Card>
           <CardHeader>
