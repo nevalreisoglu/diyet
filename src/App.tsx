@@ -17,7 +17,7 @@ import { useAuth } from "./hooks/useAuth";
 const queryClient = new QueryClient();
 
 function AppContent() {
-  const { isNative } = useMobileCapacitor();
+  useMobileCapacitor();
   const { user } = useAuth();
   const location = useLocation();
 
