@@ -102,6 +102,21 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Outfit', sans-serif;
+    /* Mobile safe areas for notch/home indicator */
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    /* iOS rubber band scroll prevention */
+    overscroll-behavior: none;
+    /* Prevent text selection on tap */
+    -webkit-tap-highlight-color: transparent;
+    /* Prevent callout on long press */
+    -webkit-touch-callout: none;
+  }
+
+  /* Bottom padding for navigation bar */
+  #root {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
@@ -109,15 +124,15 @@
   .gradient-primary {
     background: var(--gradient-primary);
   }
-  
+
   .gradient-hero {
     background: var(--gradient-hero);
   }
-  
+
   .shadow-card {
     box-shadow: var(--shadow-md);
   }
-  
+
   .shadow-glow {
     box-shadow: var(--shadow-glow);
   }
@@ -132,6 +147,22 @@
 
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out forwards;
+  }
+
+  /* Mobile bottom navigation safe area */
+  .pb-safe {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+
+  /* Bottom nav bar safe area */
+  .bottom-nav-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Touch-friendly button size */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 
