@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
-import { Search, Loader2, FileText, Check, AlertTriangle, Camera, Mic } from 'lucide-react';
+import { Search, Loader2, FileText, Check, AlertTriangle, Camera, Mic, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PhotoFoodRecognizer } from '@/components/PhotoFoodRecognizer';
 import { VoiceFoodInput } from '@/components/VoiceFoodInput';
+import { useFrequentFoods } from '@/hooks/useFrequentFoods';
 
 interface AddFoodDialogProps {
   open: boolean;
@@ -56,6 +57,7 @@ export const AddFoodDialog = ({
   const [lookupInfo, setLookupInfo] = useState<{ portion?: string; confidence?: string; source?: string; cached?: boolean } | null>(null);
   const [originalCalories, setOriginalCalories] = useState<number | null>(null);
   const { toast } = useToast();
+  const { foods: frequentFoods, loading: loadingFrequent } = useFrequentFoods(userId, open ? mealType : null);
 
   // Fetch custom foods when dialog opens
   useEffect(() => {
@@ -186,7 +188,38 @@ export const AddFoodDialog = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-auto">
-          {/* Quick add section with tabs if user has custom foods */}
+          {/* Sık kullanılanlar */}
+          {(frequentFoods.length > 0 || loadingFrequent) && (
+            <div className="mb-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sık Kullandıkların</span>
+              </div>
+              {loadingFrequent ? (
+                <div className="flex gap-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-8 w-20 rounded-full bg-muted animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {frequentFoods.map((food) => (
+                    <button
+                      key={food.name}
+                      onClick={() => handleQuickAdd({ name: food.name, calories: food.calories })}
+                      className="px-3 py-1.5 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors flex items-center gap-1.5"
+                      title={`${food.calories} kcal · ${food.count}x kullanıldı`}
+                    >
+                      {food.name}
+                      <span className="text-xs opacity-60">{food.calories}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick add section with tabs */}
           <Tabs defaultValue="custom" className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-3">
               <TabsTrigger value="custom">Listem</TabsTrigger>
