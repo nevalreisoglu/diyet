@@ -39,7 +39,7 @@ serve(async (req) => {
     const apiKey   = Deno.env.get('LEMONSQUEEZY_API_KEY')!;
     const storeId  = Deno.env.get('LEMONSQUEEZY_STORE_ID')!;
     const variantId = Deno.env.get('LEMONSQUEEZY_VARIANT_ID')!;
-    const appUrl   = Deno.env.get('APP_URL') || 'https://diyet.app';
+    const appUrl   = (Deno.env.get('APP_URL') || 'https://diyet.app').replace(/\/$/, '');
 
     // LemonSqueezy checkout oluştur
     const lsRes = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
