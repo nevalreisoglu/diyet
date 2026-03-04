@@ -262,6 +262,7 @@ export type Database = {
           created_at: string
           current_weight_kg: number | null
           display_name: string | null
+          email: string | null
           gender: string | null
           height_cm: number | null
           id: string
@@ -277,6 +278,7 @@ export type Database = {
           created_at?: string
           current_weight_kg?: number | null
           display_name?: string | null
+          email?: string | null
           gender?: string | null
           height_cm?: number | null
           id?: string
@@ -292,6 +294,7 @@ export type Database = {
           created_at?: string
           current_weight_kg?: number | null
           display_name?: string | null
+          email?: string | null
           gender?: string | null
           height_cm?: number | null
           id?: string
