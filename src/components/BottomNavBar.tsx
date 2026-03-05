@@ -1,4 +1,4 @@
-import { Home, History, Dna, Settings } from 'lucide-react';
+import { Home, History, Dna, Settings, BookOpen } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -6,6 +6,7 @@ const navItems = [
   { path: '/', icon: Home, label: 'Ana Sayfa' },
   { path: '/history', icon: History, label: 'Geçmiş' },
   { path: '/metabolic-twin', icon: Dna, label: 'Metabolik' },
+  { path: '/guide', icon: BookOpen, label: 'Rehber' },
   { path: '/settings', icon: Settings, label: 'Ayarlar' },
 ];
 
