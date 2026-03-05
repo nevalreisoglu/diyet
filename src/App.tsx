@@ -11,6 +11,7 @@ import Install from "./pages/Install";
 import MetabolicTwin from "./pages/MetabolicTwin";
 import NotFound from "./pages/NotFound";
 import { BottomNavBar } from "./components/BottomNavBar";
+import { TestModeBanner } from "./components/TestModeBanner";
 import { useMobileCapacitor } from "./hooks/useMobileCapacitor";
 import { useAuth } from "./hooks/useAuth";
 
@@ -26,6 +27,7 @@ function AppContent() {
 
   return (
     <>
+      <TestModeBanner />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
