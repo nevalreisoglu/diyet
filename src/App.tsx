@@ -9,6 +9,7 @@ import History from "./pages/History";
 import Settings from "./pages/Settings";
 import Install from "./pages/Install";
 import MetabolicTwin from "./pages/MetabolicTwin";
+import UserManual from "./pages/UserManual";
 import NotFound from "./pages/NotFound";
 import { BottomNavBar } from "./components/BottomNavBar";
 import { TestModeBanner } from "./components/TestModeBanner";
@@ -35,6 +36,7 @@ function AppContent() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/install" element={<Install />} />
         <Route path="/metabolic-twin" element={<MetabolicTwin />} />
+        <Route path="/guide" element={<UserManual />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
