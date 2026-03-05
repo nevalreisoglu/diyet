@@ -1,4 +1,4 @@
-import { CalendarDays, Leaf, LogOut } from 'lucide-react';
+import { CalendarDays, Leaf, LogOut, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,26 @@ export const Header = () => {
   });
 
   return (
-    <header className="bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
+    <header className="sticky top-0 z-50">
+      {/* Test modu bildirim şeridi */}
+      <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-700 dark:text-amber-400">
+        <div className="container max-w-2xl mx-auto px-4 py-1.5 flex items-center gap-2 text-xs">
+          <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+          <span className="font-medium">Test Modu:</span>
+          <span>Gerçek ödeme alınmaz.</span>
+          <span className="hidden sm:inline">Kart: <code className="font-mono bg-amber-500/20 px-1 rounded">4242 4242 4242 4242</code></span>
+          <a
+            href="https://docs.lemonsqueezy.com/help/getting-started/test-mode"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto underline underline-offset-2 whitespace-nowrap hover:text-amber-600"
+          >
+            Tüm test kartları →
+          </a>
+        </div>
+      </div>
+
+      <div className="bg-card/80 backdrop-blur-md border-b border-border">
       <div className="container max-w-2xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
@@ -44,6 +63,7 @@ export const Header = () => {
             )}
           </div>
         </div>
+      </div>
       </div>
     </header>
   );
