@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "icons/*.svg"],
+      includeAssets: ["favicon.ico", "icons/*.png", "icons/*.svg", "splash/*.png"],
       manifest: {
         name: "Beslenme Günlüğü",
         short_name: "Beslenme",
@@ -28,16 +28,22 @@ export default defineConfig(({ mode }) => ({
         start_url: "/",
         icons: [
           {
-            src: "/icons/icon-192x192.svg",
+            src: "/icons/icon-192x192.png",
             sizes: "192x192",
-            type: "image/svg+xml",
-            purpose: "any maskable",
+            type: "image/png",
+            purpose: "any",
           },
           {
-            src: "/icons/icon-512x512.svg",
+            src: "/icons/icon-512x512.png",
             sizes: "512x512",
-            type: "image/svg+xml",
-            purpose: "any maskable",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "/icons/icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
