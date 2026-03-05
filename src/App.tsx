@@ -13,6 +13,7 @@ import UserManual from "./pages/UserManual";
 import NotFound from "./pages/NotFound";
 import { BottomNavBar } from "./components/BottomNavBar";
 import { TestModeBanner } from "./components/TestModeBanner";
+import { IOSInstallBanner } from "./components/IOSInstallBanner";
 import { useMobileCapacitor } from "./hooks/useMobileCapacitor";
 import { useAuth } from "./hooks/useAuth";
 
@@ -29,6 +30,7 @@ function AppContent() {
   return (
     <>
       <TestModeBanner />
+      <IOSInstallBanner />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
