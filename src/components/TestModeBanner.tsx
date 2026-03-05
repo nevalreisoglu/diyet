@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { FlaskConical, CreditCard, ExternalLink } from 'lucide-react';
 
+// sessionStorage kullanıyoruz: sekme/uygulama her kapanıp açıldığında dialog tekrar gösterilir
 const LS_KEY = 'diyet_test_mode_seen';
 
 const TEST_CARDS = [
@@ -15,10 +16,10 @@ const TEST_CARDS = [
 ];
 
 export function TestModeBanner() {
-  const [open, setOpen] = useState(() => localStorage.getItem(LS_KEY) !== 'true');
+  const [open, setOpen] = useState(() => sessionStorage.getItem(LS_KEY) !== 'true');
 
   const dismiss = () => {
-    localStorage.setItem(LS_KEY, 'true');
+    sessionStorage.setItem(LS_KEY, 'true');
     setOpen(false);
   };
 
