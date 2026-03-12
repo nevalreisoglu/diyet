@@ -11,6 +11,7 @@ import Install from "./pages/Install";
 import MetabolicTwin from "./pages/MetabolicTwin";
 import UserManual from "./pages/UserManual";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 import { BottomNavBar } from "./components/BottomNavBar";
 import { TestModeBanner } from "./components/TestModeBanner";
 import { IOSInstallBanner } from "./components/IOSInstallBanner";
@@ -25,7 +26,7 @@ function AppContent() {
   const location = useLocation();
 
   // Auth sayfasında ve 404'te bottom nav gösterme
-  const hideBottomNav = location.pathname === '/auth' || location.pathname === '/install';
+  const hideBottomNav = location.pathname === '/auth' || location.pathname === '/install' || location.pathname === '/reset-password';
 
   return (
     <>
@@ -39,6 +40,7 @@ function AppContent() {
         <Route path="/install" element={<Install />} />
         <Route path="/metabolic-twin" element={<MetabolicTwin />} />
         <Route path="/guide" element={<UserManual />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

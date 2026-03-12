@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -31,6 +32,41 @@ const Auth = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+      if (error) throw error;
+
+      toast({
+        title: 'E-posta gönderildi!',
+        description: 'Şifre sıfırlama linki e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.',
+      });
+      setIsForgotPassword(false);
+    } catch (error: any) {
+      const msg = error?.message?.toLowerCase() || '';
+      let errorMessage = 'Bir hata oluştu.';
+      if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+        errorMessage = 'Çok fazla deneme yaptınız. Lütfen birkaç dakika bekleyin.';
+      } else if (msg.includes('invalid email') || msg.includes('unable to validate email')) {
+        errorMessage = 'Geçerli bir e-posta adresi girin.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      toast({
+        title: 'Hata',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,87 +176,142 @@ const Auth = () => {
           </div>
           <h1 className="text-2xl font-bold text-foreground">Beslenme Günlüğü</h1>
           <p className="text-muted-foreground mt-2">
-            {isLogin ? 'Hesabınıza giriş yapın' : 'Yeni hesap oluşturun'}
+            {isForgotPassword
+              ? 'Şifrenizi sıfırlayın'
+              : isLogin
+              ? 'Hesabınıza giriş yapın'
+              : 'Yeni hesap oluşturun'}
           </p>
         </div>
 
         <div className="bg-card rounded-2xl p-6 shadow-card animate-slide-up">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+          {isForgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="displayName" className="text-foreground">
-                  Ad Soyad
+                <Label htmlFor="email" className="text-foreground">
+                  E-posta
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="displayName"
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Adınız Soyadınız"
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="ornek@email.com"
+                    required
                     className="pl-10 bg-background border-input"
                   />
                 </div>
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">
-                E-posta
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ornek@email.com"
-                  required
-                  className="pl-10 bg-background border-input"
-                />
+              <Button
+                type="submit"
+                className="w-full gradient-primary text-primary-foreground hover:opacity-90"
+                disabled={loading}
+              >
+                {loading ? 'Gönderiliyor...' : 'Sıfırlama Linki Gönder'}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="displayName" className="text-foreground">
+                    Ad Soyad
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="displayName"
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Adınız Soyadınız"
+                      className="pl-10 bg-background border-input"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-foreground">
+                  E-posta
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="ornek@email.com"
+                    required
+                    className="pl-10 bg-background border-input"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">
-                Şifre
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                  className="pl-10 bg-background border-input"
-                />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-foreground">
+                    Şifre
+                  </Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Şifremi Unuttum
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                    className="pl-10 bg-background border-input"
+                  />
+                </div>
               </div>
-            </div>
 
-            <Button
-              type="submit"
-              className="w-full gradient-primary text-primary-foreground hover:opacity-90"
-              disabled={loading}
-            >
-              {loading ? 'Yükleniyor...' : isLogin ? 'Giriş Yap' : 'Kayıt Ol'}
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                className="w-full gradient-primary text-primary-foreground hover:opacity-90"
+                disabled={loading}
+              >
+                {loading ? 'Yükleniyor...' : isLogin ? 'Giriş Yap' : 'Kayıt Ol'}
+              </Button>
+            </form>
+          )}
 
           <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-primary hover:underline"
-            >
-              {isLogin
-                ? 'Hesabınız yok mu? Kayıt olun'
-                : 'Zaten hesabınız var mı? Giriş yapın'}
-            </button>
+            {isForgotPassword ? (
+              <button
+                type="button"
+                onClick={() => setIsForgotPassword(false)}
+                className="text-sm text-primary hover:underline"
+              >
+                Giriş sayfasına dön
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-sm text-primary hover:underline"
+              >
+                {isLogin
+                  ? 'Hesabınız yok mu? Kayıt olun'
+                  : 'Zaten hesabınız var mı? Giriş yapın'}
+              </button>
+            )}
           </div>
         </div>
       </div>
