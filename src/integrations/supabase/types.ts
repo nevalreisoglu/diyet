@@ -328,6 +328,87 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          plan: string
+          status: string
+          current_period_end: string | null
+          cancelled_at: string | null
+          ls_subscription_id: string | null
+          ls_customer_id: string | null
+          ls_variant_id: string | null
+          customer_portal_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan?: string
+          status?: string
+          current_period_end?: string | null
+          cancelled_at?: string | null
+          ls_subscription_id?: string | null
+          ls_customer_id?: string | null
+          ls_variant_id?: string | null
+          customer_portal_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan?: string
+          status?: string
+          current_period_end?: string | null
+          cancelled_at?: string | null
+          ls_subscription_id?: string | null
+          ls_customer_id?: string | null
+          ls_variant_id?: string | null
+          customer_portal_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payment_logs: {
+        Row: {
+          id: string
+          user_id: string | null
+          event_type: string
+          amount_cents: number | null
+          currency: string | null
+          ls_event_id: string | null
+          ls_subscription_id: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          event_type: string
+          amount_cents?: number | null
+          currency?: string | null
+          ls_event_id?: string | null
+          ls_subscription_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          event_type?: string
+          amount_cents?: number | null
+          currency?: string | null
+          ls_event_id?: string | null
+          ls_subscription_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
