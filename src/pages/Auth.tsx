@@ -17,8 +17,19 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Bypass auth for now - auto redirect to home
-    navigate('/');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        navigate('/');
+      }
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
