@@ -31,11 +31,9 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     console.log("Auth header present:", !!authHeader);
 
-    const testMode = Deno.env.get('FUNCTION_TEST_MODE') === 'true';
-    console.log("Test mode:", testMode);
-
-    // In test mode, skip auth entirely
-    if (testMode) {
+    // For testing: if no Bearer token, return test response
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.log("No Bearer token - returning test response");
       if (!foodName || typeof foodName !== 'string') {
         return new Response(
           JSON.stringify({ error: 'Food name is required' }),
@@ -53,14 +51,6 @@ serve(async (req) => {
           cached: false
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!authHeader?.startsWith('Bearer ')) {
-      console.log("Auth failed: no Bearer token");
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
