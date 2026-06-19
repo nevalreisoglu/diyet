@@ -208,7 +208,7 @@ Kullanıcı isteği: ${foodName}`
 
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "AI servisi şu an yoğun, lütfen tekrar deneyin." }),
+          JSON.stringify({ error: "AI servisinin günlük kotası doldu. Lütfen manuel olarak kalori girin veya daha sonra tekrar deneyin." }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
