@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { PhotoFoodRecognizer } from '@/components/PhotoFoodRecognizer';
 import { VoiceFoodInput } from '@/components/VoiceFoodInput';
 import { useFrequentFoods } from '@/hooks/useFrequentFoods';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { PremiumGate } from '@/components/PremiumGate';
 import { Lock } from 'lucide-react';
 
@@ -61,7 +61,7 @@ export const AddFoodDialog = ({
   const [originalCalories, setOriginalCalories] = useState<number | null>(null);
   const { toast } = useToast();
   const { foods: frequentFoods, loading: loadingFrequent } = useFrequentFoods(userId, open ? mealType : null);
-  const { isPremium, createCheckout } = useSubscription(userId);
+  const { isPremium, createCheckout } = useSubscriptionContext();
 
   // Fetch custom foods when dialog opens
   useEffect(() => {

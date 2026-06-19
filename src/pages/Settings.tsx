@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User, Crown, Check, ExternalLink } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { UpgradeDialog } from '@/components/UpgradeDialog';
 
 const Settings = () => {
@@ -30,15 +30,16 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const { isPremium, subscription, createCheckout } = useSubscription(user?.id);
+  const { isPremium, subscription, createCheckout, syncSubscription } = useSubscriptionContext();
 
   // LemonSqueezy ödeme sonrası yönlendirme algılama
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('upgraded') === '1') {
-      toast({ title: 'Premium\'a hoş geldiniz! 🎉', description: 'Tüm özellikler artık aktif.' });
-      // URL'den parametreyi temizle
       window.history.replaceState({}, '', window.location.pathname);
+      syncSubscription().then(() => {
+        toast({ title: 'Premium\'a hoş geldiniz! 🎉', description: 'Tüm özellikler artık aktif.' });
+      });
     }
   }, []);
 

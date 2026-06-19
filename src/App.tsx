@@ -17,6 +17,7 @@ import { TestModeBanner } from "./components/TestModeBanner";
 import { IOSInstallBanner } from "./components/IOSInstallBanner";
 import { useMobileCapacitor } from "./hooks/useMobileCapacitor";
 import { useAuth } from "./hooks/useAuth";
+import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 
 const queryClient = new QueryClient();
 
@@ -55,7 +56,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppContent />
+        <SubscriptionProvider>
+          <AppContent />
+        </SubscriptionProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
