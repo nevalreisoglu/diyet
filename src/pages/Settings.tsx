@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User, Crown, Check, ExternalLink } from 'lucide-react';
+import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User, Crown, Check, ExternalLink, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { UpgradeDialog } from '@/components/UpgradeDialog';
@@ -30,6 +30,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const { isPremium, subscription, createCheckout, syncSubscription } = useSubscriptionContext();
 
   // LemonSqueezy ödeme sonrası yönlendirme algılama
@@ -185,10 +186,32 @@ const Settings = () => {
                 )}
               </div>
             ) : (
-              <Button className="gradient-primary text-primary-foreground gap-2" onClick={() => setUpgradeOpen(true)}>
-                <Crown className="h-4 w-4" />
-                Premium&apos;a Geç — $4.99/ay
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button className="gradient-primary text-primary-foreground gap-2" onClick={() => setUpgradeOpen(true)}>
+                  <Crown className="h-4 w-4" />
+                  Premium&apos;a Geç — $4.99/ay
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground gap-2"
+                  disabled={syncing}
+                  onClick={async () => {
+                    setSyncing(true);
+                    try {
+                      await syncSubscription();
+                      toast({ title: 'Abonelik kontrol edildi', description: 'Durum güncellendi.' });
+                    } catch {
+                      toast({ title: 'Hata', description: 'Senkronizasyon başarısız.', variant: 'destructive' });
+                    } finally {
+                      setSyncing(false);
+                    }
+                  }}
+                >
+                  {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                  Zaten ödedim, yenile
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
