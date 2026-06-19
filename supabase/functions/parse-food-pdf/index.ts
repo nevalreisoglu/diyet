@@ -62,7 +62,7 @@ serve(async (req) => {
     console.log('Parsing PDF with Gemini vision...');
 
     // Use multimodal AI to extract food items AND meal schedules from PDF
-    const aiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+    const aiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', {
       method: 'POST',
       headers: {
         'x-goog-api-key': GEMINI_API_KEY,
