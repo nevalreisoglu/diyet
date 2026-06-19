@@ -9,14 +9,14 @@ import { WhatIfSimulator } from '@/components/metabolic/WhatIfSimulator';
 import { MetabolicInsights } from '@/components/metabolic/MetabolicInsights';
 import { Loader2, Dna } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { PremiumGate } from '@/components/PremiumGate';
 
 const MetabolicTwin = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { profile, recentMetrics, loading } = useMetabolicProfile(user?.id);
-  const { isPremium, createCheckout } = useSubscription(user?.id);
+  const { isPremium, createCheckout } = useSubscriptionContext();
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');

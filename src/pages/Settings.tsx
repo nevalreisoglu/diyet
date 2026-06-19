@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User, Crown, Check, ExternalLink } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { UpgradeDialog } from '@/components/UpgradeDialog';
 
 const Settings = () => {
@@ -30,7 +30,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const { isPremium, subscription, createCheckout } = useSubscription(user?.id);
+  const { isPremium, subscription, createCheckout } = useSubscriptionContext();
 
   // LemonSqueezy ödeme sonrası yönlendirme algılama
   useEffect(() => {

@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { mealTypeLabels, mealTypeIcons, MealType } from '@/types/nutrition';
 import { exportHistoryToExcel } from '@/utils/exportToExcel';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { PremiumGate } from '@/components/PremiumGate';
 
 const History = () => {
@@ -21,7 +21,7 @@ const History = () => {
   const { addFoodToDate, removeFoodFromDate, addWaterToDate, removeWaterFromDate } = useHistoryMutations(user?.id, refetch);
   
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
-  const { isPremium, createCheckout } = useSubscription(user?.id);
+  const { isPremium, createCheckout } = useSubscriptionContext();
   const [addFoodDialogOpen, setAddFoodDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null);

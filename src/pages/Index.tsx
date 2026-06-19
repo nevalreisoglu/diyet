@@ -22,7 +22,7 @@ import { useAchievements, AchievementType } from '@/hooks/useAchievements';
 import { MealType } from '@/types/nutrition';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { PremiumGate } from '@/components/PremiumGate';
 
 const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack1', 'snack2', 'snack3'];
@@ -53,7 +53,7 @@ const Index = () => {
   const { beverages } = useBeverageData(user?.id);
   const { duration: exerciseMinutes } = useExerciseData(user?.id);
   const { todayAchievements, checkAndAwardAchievements } = useAchievements(user?.id);
-  const { isPremium, createCheckout } = useSubscription(user?.id);
+  const { isPremium, createCheckout } = useSubscriptionContext();
 
   // Calculate totalCalories early for use in achievements
   const totalCalories = getTotalCalories();
