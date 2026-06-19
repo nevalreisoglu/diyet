@@ -30,15 +30,16 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const { isPremium, subscription, createCheckout } = useSubscriptionContext();
+  const { isPremium, subscription, createCheckout, syncSubscription } = useSubscriptionContext();
 
   // LemonSqueezy ödeme sonrası yönlendirme algılama
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('upgraded') === '1') {
-      toast({ title: 'Premium\'a hoş geldiniz! 🎉', description: 'Tüm özellikler artık aktif.' });
-      // URL'den parametreyi temizle
       window.history.replaceState({}, '', window.location.pathname);
+      syncSubscription().then(() => {
+        toast({ title: 'Premium\'a hoş geldiniz! 🎉', description: 'Tüm özellikler artık aktif.' });
+      });
     }
   }, []);
 

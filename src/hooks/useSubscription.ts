@@ -76,7 +76,6 @@ export function useSubscription(userId?: string) {
 
   // LemonSqueezy checkout URL'i al → yönlendir
   const createCheckout = useCallback(async (): Promise<string> => {
-    // Session'ı tazele, süresi dolmuşsa yenile
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
       throw new Error('Oturum bulunamadı, lütfen tekrar giriş yapın');
@@ -89,5 +88,14 @@ export function useSubscription(userId?: string) {
     return data.url as string;
   }, []);
 
-  return { isPremium, loading, subscription, createCheckout };
+  // Ödeme sonrası LemonSqueezy'den aboneliği çekip DB'yi güncelle
+  const syncSubscription = useCallback(async (): Promise<void> => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) return;
+    await supabase.functions.invoke('sync-subscription', {
+      headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+    });
+  }, []);
+
+  return { isPremium, loading, subscription, createCheckout, syncSubscription };
 }

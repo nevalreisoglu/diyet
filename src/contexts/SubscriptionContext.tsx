@@ -7,6 +7,7 @@ interface SubscriptionContextValue {
   loading: boolean;
   subscription: ReturnType<typeof useSubscription>['subscription'];
   createCheckout: () => Promise<string>;
+  syncSubscription: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
