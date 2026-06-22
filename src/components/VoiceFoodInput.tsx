@@ -29,15 +29,15 @@ export function VoiceFoodInput({ onAddFood }: VoiceFoodInputProps) {
         body: { foodName: text },
       });
 
-      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (error || data?.error) throw new Error(data?.error || error?.message || 'Bilinmeyen hata');
 
       if (data?.calories) {
         setResult({ name: text, calories: data.calories, portion: data.portion, confidence: data.confidence });
       }
-    } catch {
+    } catch (err: any) {
       toast({
         title: 'Kalori bulunamadı',
-        description: `"${text}" için kalori bilgisi alınamadı`,
+        description: err?.message || `"${text}" için kalori bilgisi alınamadı`,
         variant: 'destructive',
       });
     } finally {
