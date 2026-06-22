@@ -130,14 +130,23 @@ function projectWeight(
 }
 
 serve(async (req) => {
+  const reqId = crypto.randomUUID().slice(0, 8);
+  console.log(`[${reqId}] forecast-weight başladı`, { method: req.method });
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { historyData } = await req.json() as { historyData: HistoryData };
+    const body = await req.json() as { historyData: HistoryData };
+    const { historyData } = body;
+    console.log(`[${reqId}] historyData alındı`, {
+      dailyDataCount: historyData?.dailyData?.length ?? 0,
+      hasProfile: !!historyData?.userProfile,
+    });
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    console.log(`[${reqId}] GEMINI_API_KEY mevcut:`, !!GEMINI_API_KEY);
 
     // Sort chronologically (oldest first)
     const sorted = [...historyData.dailyData].sort(
@@ -351,6 +360,8 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
       });
     }
 
+    console.log(`[${reqId}] Gemini API isteği gönderiliyor...`);
+    const geminiStart = Date.now();
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
       method: "POST",
       headers: {
@@ -369,20 +380,18 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
         ]
       }),
     });
+    console.log(`[${reqId}] Gemini yanıtı:`, {
+      status: response.status,
+      ok: response.ok,
+      durationMs: Date.now() - geminiStart,
+      headers: Object.fromEntries([...response.headers.entries()].filter(([k]) =>
+        ['content-type', 'x-ratelimit-limit-requests', 'x-ratelimit-remaining-requests', 'retry-after'].includes(k)
+      )),
+    });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit aşıldı, lütfen biraz bekleyin." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 401 || response.status === 403) {
-        return new Response(JSON.stringify({ error: "API anahtarı geçersiz. Lütfen GEMINI_API_KEY kontrol edin." }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
+      console.error(`[${reqId}] Gemini API hata detayı:`, { status: response.status, body: errorText });
       // Fallback: return model projections without AI interpretation
       return new Response(JSON.stringify({
         forecast: {
@@ -477,7 +486,11 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
     });
 
   } catch (error) {
-    console.error("Forecast error:", error);
+    console.error(`[${reqId}] Beklenmeyen hata:`, {
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Bilinmeyen hata" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
