@@ -7,13 +7,18 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("[lookup-calories] Request received:", req.method, req.url);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const authHeader = req.headers.get('Authorization');
+    console.log("[lookup-calories] Auth header present:", !!authHeader, authHeader?.startsWith('Bearer '));
+
     if (!authHeader?.startsWith('Bearer ')) {
+      console.error("[lookup-calories] Unauthorized - no Bearer token");
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
