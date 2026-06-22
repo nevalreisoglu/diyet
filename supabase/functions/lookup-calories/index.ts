@@ -185,11 +185,17 @@ Yanıt formatı (SADECE bu JSON'u döndür):
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
+      console.error("[lookup-calories] Gemini HTTP error:", response.status, errorText);
 
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "AI servisi şu an yoğun, lütfen tekrar deneyin." }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 400) {
+        return new Response(
+          JSON.stringify({ error: `Gemini 400 hatası: ${errorText.slice(0, 200)}` }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -201,20 +207,24 @@ Yanıt formatı (SADECE bu JSON'u döndür):
       }
 
       return new Response(
-        JSON.stringify({ error: "Kalori araması başarısız oldu. Lütfen değeri manuel girin." }),
+        JSON.stringify({ error: `Gemini ${response.status} hatası: ${errorText.slice(0, 200)}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const aiData = await response.json();
+    console.log("[lookup-calories] Gemini raw response:", JSON.stringify(aiData).slice(0, 500));
 
     let calories: number | null = null;
     let portion = '';
     let confidence = 'medium';
 
     const candidate = aiData.candidates?.[0];
+    console.log("[lookup-calories] finishReason:", candidate?.finishReason, "parts count:", candidate?.content?.parts?.length);
+
     // Exclude thought parts (Gemini 2.5 thinking model outputs thought tokens separately)
     const textPart = candidate?.content?.parts?.find((part: any) => part.text && !part.thought);
+    console.log("[lookup-calories] textPart found:", !!textPart, "text:", textPart?.text?.slice(0, 200));
 
     if (textPart?.text) {
       try {
@@ -223,15 +233,19 @@ Yanıt formatı (SADECE bu JSON'u döndür):
         calories = parsed.calories ?? null;
         portion = parsed.portion || '';
         confidence = parsed.confidence || 'medium';
+        console.log("[lookup-calories] Parsed:", { calories, portion, confidence });
       } catch (e) {
-        console.error("Failed to parse JSON response:", e, textPart.text);
+        console.error("[lookup-calories] JSON parse failed:", e, "text:", textPart.text.slice(0, 300));
         // Fallback: extract first number from text
         const match = textPart.text.match(/\d+/);
         calories = match ? parseInt(match[0], 10) : null;
       }
+    } else {
+      console.error("[lookup-calories] No text part found. Full candidate:", JSON.stringify(candidate).slice(0, 500));
     }
 
     if (!calories || isNaN(calories)) {
+      console.error("[lookup-calories] No valid calories extracted. calories =", calories);
       return new Response(
         JSON.stringify({ error: "Bu yiyecek için kalori belirlenemedi. Lütfen değeri manuel girin." }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
