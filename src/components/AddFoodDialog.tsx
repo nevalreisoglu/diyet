@@ -59,6 +59,7 @@ export const AddFoodDialog = ({
   const [loadingCustomFoods, setLoadingCustomFoods] = useState(false);
   const [lookupInfo, setLookupInfo] = useState<{ portion?: string; confidence?: string; source?: string; cached?: boolean } | null>(null);
   const [originalCalories, setOriginalCalories] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState('custom');
   const { toast } = useToast();
   const { foods: frequentFoods, loading: loadingFrequent } = useFrequentFoods(userId, open ? mealType : null);
   const { isPremium, createCheckout } = useSubscriptionContext();
@@ -224,7 +225,7 @@ export const AddFoodDialog = ({
           )}
 
           {/* Quick add section with tabs */}
-          <Tabs defaultValue="custom" className="w-full">
+          <Tabs defaultValue="custom" className="w-full" onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4 mb-3">
               <TabsTrigger value="custom">Listem</TabsTrigger>
               <TabsTrigger value="default">Genel</TabsTrigger>
@@ -360,6 +361,7 @@ export const AddFoodDialog = ({
             </TabsContent>
           </Tabs>
 
+          {activeTab !== 'voice' && activeTab !== 'photo' && (
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-border" />
@@ -368,8 +370,10 @@ export const AddFoodDialog = ({
               <span className="bg-card px-2 text-muted-foreground">veya</span>
             </div>
           </div>
+          )}
 
           {/* Custom food form */}
+          {activeTab !== 'voice' && activeTab !== 'photo' && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-foreground">Yiyecek Adı</Label>
@@ -450,6 +454,7 @@ export const AddFoodDialog = ({
               Ekle
             </Button>
           </form>
+          )}
         </div>
       </DialogContent>
     </Dialog>
