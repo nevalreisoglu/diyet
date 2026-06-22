@@ -110,12 +110,12 @@ export const useNutritionData = (userId: string | undefined) => {
 
         if (foodError) throw foodError;
 
+        await fetchMeals();
+
         toast({
           title: 'Eklendi',
           description: `${food.name} eklendi.`,
         });
-
-        fetchMeals();
       } catch (error) {
         console.error('Error adding food:', error);
         toast({
@@ -138,12 +138,12 @@ export const useNutritionData = (userId: string | undefined) => {
 
         if (error) throw error;
 
+        await fetchMeals();
+
         toast({
           title: 'Silindi',
           description: 'Yiyecek silindi.',
         });
-
-        fetchMeals();
       } catch (error) {
         console.error('Error removing food:', error);
         toast({
