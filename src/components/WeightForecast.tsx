@@ -196,8 +196,8 @@ export const WeightForecast = ({ userId }: WeightForecastProps) => {
               <Brain className="h-5 w-5 text-primary" />
               <CardTitle className="text-lg">AI Kilo Tahmini</CardTitle>
             </div>
-            <Button variant="ghost" size="icon" onClick={fetchForecast}>
-              <RefreshCw className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={fetchForecast} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </CardHeader>
@@ -243,8 +243,8 @@ export const WeightForecast = ({ userId }: WeightForecastProps) => {
           </div>
           <div className="flex items-center gap-2">
             <ConfidenceBadge level={forecast.confidenceLevel} />
-            <Button variant="ghost" size="icon" onClick={fetchForecast} title="Yenile">
-              <RefreshCw className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={fetchForecast} title="Yenile" disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
