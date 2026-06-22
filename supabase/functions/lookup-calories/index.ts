@@ -213,7 +213,8 @@ Yanıt formatı (SADECE bu JSON'u döndür):
     let confidence = 'medium';
 
     const candidate = aiData.candidates?.[0];
-    const textPart = candidate?.content?.parts?.find((part: any) => part.text);
+    // Exclude thought parts (Gemini 2.5 thinking model outputs thought tokens separately)
+    const textPart = candidate?.content?.parts?.find((part: any) => part.text && !part.thought);
 
     if (textPart?.text) {
       try {
