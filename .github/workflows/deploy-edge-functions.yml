@@ -1,0 +1,31 @@
+name: Deploy Edge Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy edge functions
+        run: |
+          supabase functions deploy forecast-weight --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          supabase functions deploy metabolic-twin --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          supabase functions deploy recognize-meal --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          supabase functions deploy lookup-calories --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          supabase functions deploy parse-food-pdf --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          supabase functions deploy create-checkout --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          supabase functions deploy lemon-webhook --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          supabase functions deploy sync-subscription --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

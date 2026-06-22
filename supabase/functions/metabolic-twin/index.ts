@@ -100,19 +100,16 @@ Son ${recentData?.length || 0} günlük ortalama veriler:
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit aşıldı, lütfen biraz bekleyin." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 401 || response.status === 403) {
-        return new Response(JSON.stringify({ error: "API anahtarı geçersiz. Lütfen GEMINI_API_KEY kontrol edin." }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("Gemini API error:", response.status, t);
-      throw new Error("Gemini API error");
+      const errorText = await response.text();
+      console.error("Gemini API error:", response.status, errorText);
+      const userMessage = response.status === 429
+        ? "Gemini API rate limit aşıldı, lütfen birkaç saniye bekleyip tekrar deneyin."
+        : response.status === 401 || response.status === 403
+        ? "API anahtarı geçersiz. Lütfen GEMINI_API_KEY'i kontrol edin."
+        : "Gemini API geçici hata döndürdü, lütfen tekrar deneyin.";
+      return new Response(JSON.stringify({ error: userMessage }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
