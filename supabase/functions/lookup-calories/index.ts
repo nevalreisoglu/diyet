@@ -111,7 +111,7 @@ serve(async (req) => {
                 text: `Sen bir profesyonel beslenme uzmanı ve kalori veritabanısın. Kullanıcı sana bir yiyecek/içecek adı verecek ve sen USDA, Türk Gıda Kompozisyon veritabanı ve güvenilir beslenme kaynaklarına dayalı olarak kalori değerini döndüreceksin.
 
 KURALLAR:
-1. lookup_calories fonksiyonunu kullanarak sonucu döndür.
+1. Yanıtını SADECE aşağıdaki JSON formatında ver, başka hiçbir şey yazma.
 2. Her zaman aynı yiyecek için tutarlı ve aynı değeri döndür.
 3. Porsiyon belirtilmemişse aşağıdaki standart porsiyon boyutlarını kullan.
 4. Türk mutfağına özel yemekleri iyi bil.
@@ -165,40 +165,21 @@ TÜRK YEMEKLERİ REFERANS (100g veya 1 porsiyon):
 - Kazandibi (1 porsiyon): 220
 - Lokum (2 adet): 100
 
-Kullanıcı isteği: ${foodName}`
+Kullanıcı isteği: ${foodName}
+
+Yanıt formatı (SADECE bu JSON'u döndür):
+{
+  "calories": <tam sayı>,
+  "portion": "<porsiyon açıklaması>",
+  "confidence": "<high|medium|low>"
+}`
               }
             ]
           }
         ],
-        tools: [
-          {
-            functionDeclarations: [
-              {
-                name: "lookup_calories",
-                description: "Yiyeceğin kalori bilgisini döndür",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    calories: {
-                      type: "integer",
-                      description: "Kalori değeri (kcal cinsinden)"
-                    },
-                    portion: {
-                      type: "string",
-                      description: "Hesaplanan porsiyon açıklaması, örn: '1 orta boy (150g)'"
-                    },
-                    confidence: {
-                      type: "string",
-                      enum: ["high", "medium", "low"],
-                      description: "Değerin güvenilirlik düzeyi"
-                    }
-                  },
-                  required: ["calories", "portion", "confidence"]
-                }
-              }
-            ]
-          }
-        ]
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
       }),
     });
 
@@ -227,28 +208,23 @@ Kullanıcı isteği: ${foodName}`
 
     const aiData = await response.json();
 
-    // Parse tool use response (Gemini format)
     let calories: number | null = null;
     let portion = '';
     let confidence = 'medium';
 
     const candidate = aiData.candidates?.[0];
-    const functionCall = candidate?.content?.parts?.find((part: any) => part.functionCall);
+    const textPart = candidate?.content?.parts?.find((part: any) => part.text);
 
-    if (functionCall?.functionCall?.args) {
+    if (textPart?.text) {
       try {
-        calories = functionCall.functionCall.args.calories;
-        portion = functionCall.functionCall.args.portion || '';
-        confidence = functionCall.functionCall.args.confidence || 'medium';
+        const jsonText = textPart.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const parsed = JSON.parse(jsonText);
+        calories = parsed.calories ?? null;
+        portion = parsed.portion || '';
+        confidence = parsed.confidence || 'medium';
       } catch (e) {
-        console.error("Failed to parse function call args:", e);
-      }
-    }
-
-    // Fallback: parse from text content if function call failed
-    if (!calories) {
-      const textPart = candidate?.content?.parts?.find((part: any) => part.text);
-      if (textPart?.text) {
+        console.error("Failed to parse JSON response:", e, textPart.text);
+        // Fallback: extract first number from text
         const match = textPart.text.match(/\d+/);
         calories = match ? parseInt(match[0], 10) : null;
       }
