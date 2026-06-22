@@ -117,10 +117,15 @@ Kurallar:
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('AI API error:', aiResponse.status, errorText);
-      if (aiResponse.status === 401 || aiResponse.status === 403) {
-        throw new Error('API anahtarı geçersiz. Lütfen GEMINI_API_KEY kontrol edin.');
-      }
-      throw new Error('AI API request failed');
+      const userMessage = aiResponse.status === 429
+        ? 'Çok fazla istek gönderildi. Lütfen birkaç saniye bekleyip tekrar deneyin.'
+        : aiResponse.status === 401 || aiResponse.status === 403
+        ? 'API anahtarı geçersiz. Lütfen GEMINI_API_KEY kontrol edin.'
+        : 'AI servisi geçici hata döndürdü. Lütfen tekrar deneyin.';
+      return new Response(
+        JSON.stringify({ error: userMessage }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const aiData = await aiResponse.json();
