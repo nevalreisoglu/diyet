@@ -371,16 +371,6 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit aşıldı, lütfen biraz bekleyin." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 401 || response.status === 403) {
-        return new Response(JSON.stringify({ error: "API anahtarı geçersiz. Lütfen GEMINI_API_KEY kontrol edin." }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const errorText = await response.text();
       console.error("Gemini API error:", response.status, errorText);
       // Fallback: return model projections without AI interpretation
