@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
-import { Search, Loader2, FileText, Check, AlertTriangle, Camera, Mic, TrendingUp } from 'lucide-react';
+import { Search, Loader2, Check, AlertTriangle, Camera, Mic, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,16 +22,6 @@ interface AddFoodDialogProps {
   mealType: MealType | null;
   onAddFood: (mealType: MealType, food: { name: string; calories: number }) => void;
   userId?: string;
-}
-
-interface CustomFood {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-  meal_type: string | null;
 }
 
 const defaultQuickFoods = [
@@ -55,41 +45,12 @@ export const AddFoodDialog = ({
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [isLookingUp, setIsLookingUp] = useState(false);
-  const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
-  const [loadingCustomFoods, setLoadingCustomFoods] = useState(false);
   const [lookupInfo, setLookupInfo] = useState<{ portion?: string; confidence?: string; source?: string; cached?: boolean } | null>(null);
   const [originalCalories, setOriginalCalories] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState('custom');
+  const [activeTab, setActiveTab] = useState('default');
   const { toast } = useToast();
   const { foods: frequentFoods, loading: loadingFrequent } = useFrequentFoods(userId, open ? mealType : null);
   const { isPremium, createCheckout } = useSubscriptionContext();
-
-  // Fetch custom foods when dialog opens
-  useEffect(() => {
-    if (open && userId) {
-      fetchCustomFoods();
-    }
-  }, [open, userId]);
-
-  const fetchCustomFoods = async () => {
-    if (!userId) return;
-    
-    setLoadingCustomFoods(true);
-    try {
-      const { data, error } = await supabase
-        .from('custom_foods')
-        .select('*')
-        .eq('user_id', userId)
-        .order('name');
-
-      if (error) throw error;
-      setCustomFoods(data || []);
-    } catch (error) {
-      console.error('Error fetching custom foods:', error);
-    } finally {
-      setLoadingCustomFoods(false);
-    }
-  };
 
   const handleLookupCalories = async () => {
     if (!name.trim()) {
@@ -180,8 +141,6 @@ export const AddFoodDialog = ({
 
   if (!mealType) return null;
 
-  const hasCustomFoods = customFoods.length > 0 || loadingCustomFoods;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-card border-border max-h-[90vh] overflow-hidden flex flex-col">
@@ -225,9 +184,8 @@ export const AddFoodDialog = ({
           )}
 
           {/* Quick add section with tabs */}
-          <Tabs defaultValue="custom" className="w-full" onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-3">
-              <TabsTrigger value="custom">Listem</TabsTrigger>
+          <Tabs defaultValue="default" className="w-full" onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3 mb-3">
               <TabsTrigger value="default">Genel</TabsTrigger>
               <TabsTrigger value="photo" className="flex items-center gap-1">
                 {isPremium ? <Camera className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
@@ -238,71 +196,7 @@ export const AddFoodDialog = ({
                 Ses
               </TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="custom" className="mt-0">
-              <Label className="text-muted-foreground text-sm">Bu öğün için yiyecekler</Label>
-              <ScrollArea className="h-32 mt-2">
-                {loadingCustomFoods ? (
-                  <div className="flex items-center justify-center h-24">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (() => {
-                  // Filter foods by meal type
-                  const filteredFoods = customFoods.filter(
-                    (food) => food.meal_type === mealType || food.meal_type === null
-                  );
-                  const mealSpecificFoods = customFoods.filter(
-                    (food) => food.meal_type === mealType
-                  );
-                  const unassignedFoods = customFoods.filter(
-                    (food) => food.meal_type === null
-                  );
-                  
-                  return mealSpecificFoods.length > 0 || unassignedFoods.length > 0 ? (
-                    <div className="space-y-3 pr-4">
-                      {mealSpecificFoods.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {mealSpecificFoods.map((food) => (
-                            <button
-                              key={food.id}
-                              onClick={() => handleQuickAdd({ name: food.name, calories: food.calories })}
-                              className="px-3 py-1.5 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors"
-                              title={`${food.calories} kcal`}
-                            >
-                              {food.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {unassignedFoods.length > 0 && mealSpecificFoods.length > 0 && (
-                        <div className="text-xs text-muted-foreground pt-2 border-t border-border">Diğer yiyecekler</div>
-                      )}
-                      {unassignedFoods.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {unassignedFoods.map((food) => (
-                            <button
-                              key={food.id}
-                              onClick={() => handleQuickAdd({ name: food.name, calories: food.calories })}
-                              className="px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-full transition-colors"
-                              title={`${food.calories} kcal`}
-                            >
-                              {food.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-24 text-muted-foreground text-sm">
-                      <FileText className="h-6 w-6 mb-2 opacity-50" />
-                      <p>Bu öğün için yiyecek yok</p>
-                      <p className="text-xs">Ana sayfadan PDF yükleyin</p>
-                    </div>
-                  );
-                })()}
-              </ScrollArea>
-            </TabsContent>
-            
+
             <TabsContent value="default" className="mt-0">
               <Label className="text-muted-foreground text-sm">Hızlı Ekle</Label>
               <div className="flex flex-wrap gap-2 mt-2">
