@@ -1,20 +1,12 @@
-import { Plus, X, FileText } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { MealType, mealTypeLabels, mealTypeIcons, FoodItem } from '@/types/nutrition';
 import { Button } from '@/components/ui/button';
 import { MealTimeEditor } from '@/components/MealTimeEditor';
-
-interface CustomFood {
-  id: string;
-  name: string;
-  calories: number;
-  meal_type: string | null;
-}
 
 interface MealCardProps {
   mealType: MealType;
   calories: number;
   foods: FoodItem[];
-  customFoods?: CustomFood[];
   scheduledTime?: string | null;
   onAddFood: () => void;
   onRemoveFood: (foodId: string) => void;
@@ -45,7 +37,6 @@ export const MealCard = ({
   mealType,
   calories,
   foods,
-  customFoods = [],
   scheduledTime,
   onAddFood,
   onRemoveFood,
@@ -120,32 +111,6 @@ export const MealCard = ({
         </p>
       )}
 
-      {/* PDF Foods Preview */}
-      {customFoods.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-border/50">
-          <div className="flex items-center gap-1.5 mb-2">
-            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground font-medium">PDF'den önerilen</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {customFoods.slice(0, 5).map((food) => (
-              <button
-                key={food.id}
-                onClick={onAddFood}
-                className="px-2 py-1 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors"
-                title={`${food.calories} kcal - Eklemek için tıklayın`}
-              >
-                {food.name}
-              </button>
-            ))}
-            {customFoods.length > 5 && (
-              <span className="px-2 py-1 text-xs text-muted-foreground">
-                +{customFoods.length - 5} daha
-              </span>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -6,7 +6,6 @@ import { QuickStats } from '@/components/QuickStats';
 import { MealCard } from '@/components/MealCard';
 import { AddFoodDialog } from '@/components/AddFoodDialog';
 import { WaterTracker } from '@/components/WaterTracker';
-import { PdfUploader } from '@/components/PdfUploader';
 import { BeverageTracker } from '@/components/BeverageTracker';
 import { ExerciseTracker } from '@/components/ExerciseTracker';
 import { AchievementBadges } from '@/components/AchievementBadges';
@@ -14,7 +13,6 @@ import { WeightForecast } from '@/components/WeightForecast';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
 import { useMealSchedules } from '@/hooks/useMealSchedules';
-import { useCustomFoods } from '@/hooks/useCustomFoods';
 import { useWaterData } from '@/hooks/useWaterData';
 import { useBeverageData } from '@/hooks/useBeverageData';
 import { useExerciseData } from '@/hooks/useExerciseData';
@@ -46,7 +44,6 @@ const Index = () => {
   } = useNutritionData(user?.id);
 
   const { schedules, getScheduleForMeal, updateSchedule, clearSchedule, refetch: refetchSchedules } = useMealSchedules(user?.id);
-  const { customFoods, refetch: refetchCustomFoods } = useCustomFoods(user?.id, refetchSchedules);
 
   // Achievement tracking hooks
   const { waterIntake, targetWater } = useWaterData(user?.id);
@@ -191,8 +188,7 @@ const Index = () => {
                 mealType={mealType}
                 calories={getMealCalories(mealType)}
                 foods={getMealFoods(mealType)}
-                customFoods={customFoods.filter(f => f.meal_type === mealType)}
-                scheduledTime={getScheduleForMeal(mealType)}
+scheduledTime={getScheduleForMeal(mealType)}
                 onAddFood={() => handleOpenAddFood(mealType)}
                 onRemoveFood={(foodId) => removeFood(mealType, foodId)}
                 onUpdateTime={(time) => updateSchedule(mealType, time)}
@@ -203,11 +199,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* PDF Uploader - Full Width */}
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Yiyecek Listem</h2>
-          <PdfUploader userId={user?.id} onSchedulesUpdated={() => { refetchSchedules(); refetchCustomFoods(); }} />
-        </section>
       </main>
 
       {/* Add Food Dialog */}
