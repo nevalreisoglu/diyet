@@ -74,19 +74,17 @@ export const useNutritionData = (userId: string | undefined) => {
     fetchProfile();
   }, [fetchMeals, fetchProfile]);
 
-  const addFood = useCallback(
-    async (mealType: MealType, food: { name: string; calories: number }) => {
-      if (!userId) return;
+  const addFoods = useCallback(
+    async (mealType: MealType, foods: { name: string; calories: number }[]) => {
+      if (!userId || foods.length === 0) return;
 
       try {
-        // Check if meal exists for today
         let mealId: string;
         const existingMeal = meals.find((m) => m.meal_type === mealType);
 
         if (existingMeal) {
           mealId = existingMeal.id;
         } else {
-          // Create new meal
           const { data: newMeal, error: mealError } = await supabase
             .from('meals')
             .insert({
@@ -101,18 +99,15 @@ export const useNutritionData = (userId: string | undefined) => {
           mealId = newMeal.id;
         }
 
-        // Add food item
-        const { error: foodError } = await supabase.from('food_items').insert({
-          meal_id: mealId,
-          name: food.name,
-          calories: food.calories,
-        });
+        const { error: foodError } = await supabase.from('food_items').insert(
+          foods.map((food) => ({ meal_id: mealId, name: food.name, calories: food.calories }))
+        );
 
         if (foodError) throw foodError;
 
         toast({
           title: 'Eklendi',
-          description: `${food.name} eklendi.`,
+          description: foods.length === 1 ? `${foods[0].name} eklendi.` : `${foods.length} yiyecek eklendi.`,
         });
 
         fetchMeals();
@@ -126,6 +121,11 @@ export const useNutritionData = (userId: string | undefined) => {
       }
     },
     [userId, meals, today, toast, fetchMeals]
+  );
+
+  const addFood = useCallback(
+    (mealType: MealType, food: { name: string; calories: number }) => addFoods(mealType, [food]),
+    [addFoods]
   );
 
   const removeFood = useCallback(
@@ -186,6 +186,7 @@ export const useNutritionData = (userId: string | undefined) => {
     targetCalories,
     loading,
     addFood,
+    addFoods,
     removeFood,
     getTotalCalories,
     getMealCalories,

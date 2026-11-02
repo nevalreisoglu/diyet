@@ -38,6 +38,7 @@ const Index = () => {
     targetCalories,
     loading: dataLoading,
     addFood,
+    addFoods,
     removeFood,
     getTotalCalories,
     getMealCalories,
@@ -193,7 +194,7 @@ const Index = () => {
                 plannedFoods={customFoods.filter((f) => f.meal_type === mealType)}
                 scheduledTime={getScheduleForMeal(mealType)}
                 onAddFood={() => handleOpenAddFood(mealType)}
-                onAddPlannedFood={(food) => handleAddFood(mealType, { name: food.name, calories: food.calories })}
+                onAddPlannedFoods={(list) => addFoods(mealType, list.map((f) => ({ name: f.name, calories: f.calories })))}
                 onRemoveFood={(foodId) => removeFood(mealType, foodId)}
                 onUpdateTime={(time) => updateSchedule(mealType, time)}
                 onClearTime={() => clearSchedule(mealType)}

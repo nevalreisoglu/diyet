@@ -1,6 +1,8 @@
-import { Plus, X, Check, ListChecks } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, X, ChevronDown, ChevronUp, ListPlus } from 'lucide-react';
 import { MealType, mealTypeLabels, mealTypeIcons, FoodItem } from '@/types/nutrition';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { MealTimeEditor } from '@/components/MealTimeEditor';
 import type { CustomFood } from '@/hooks/useCustomFoods';
 
@@ -11,7 +13,7 @@ interface MealCardProps {
   plannedFoods?: CustomFood[];
   scheduledTime?: string | null;
   onAddFood: () => void;
-  onAddPlannedFood?: (food: CustomFood) => void;
+  onAddPlannedFoods?: (foods: CustomFood[]) => void;
   onRemoveFood: (foodId: string) => void;
   onUpdateTime: (time: string) => void;
   onClearTime: () => void;
@@ -36,6 +38,9 @@ const mealIconBgClasses: Record<MealType, string> = {
   snack3: 'bg-meal-snack/20',
 };
 
+const PREVIEW_COUNT = 5;
+const normalize = (s: string) => s.trim().toLocaleLowerCase('tr-TR');
+
 export const MealCard = ({
   mealType,
   calories,
@@ -43,14 +48,31 @@ export const MealCard = ({
   plannedFoods = [],
   scheduledTime,
   onAddFood,
-  onAddPlannedFood,
+  onAddPlannedFoods,
   onRemoveFood,
   onUpdateTime,
   onClearTime,
   delay = 0,
 }: MealCardProps) => {
-  const loggedNames = new Set(foods.map((f) => f.name.trim().toLocaleLowerCase('tr-TR')));
-  const isLogged = (name: string) => loggedNames.has(name.trim().toLocaleLowerCase('tr-TR'));
+  const [expanded, setExpanded] = useState(false);
+
+  // Her plan satırını günlükteki en fazla bir girdiyle eşleştir; kalanlar "ekstra"
+  const unmatched = [...foods];
+  const planRows = plannedFoods.map((planned) => {
+    const idx = unmatched.findIndex((f) => normalize(f.name) === normalize(planned.name));
+    const logged = idx >= 0 ? unmatched.splice(idx, 1)[0] : null;
+    return { planned, logged };
+  });
+  const extras = unmatched;
+  const pending = planRows.filter((r) => !r.logged).map((r) => r.planned);
+  const visibleRows = expanded ? planRows : planRows.slice(0, PREVIEW_COUNT);
+  const hiddenCount = planRows.length - visibleRows.length;
+  const hasPlan = plannedFoods.length > 0;
+
+  const toggleRow = (row: (typeof planRows)[number]) => {
+    if (row.logged) onRemoveFood(row.logged.id);
+    else onAddPlannedFoods?.([row.planned]);
+  };
 
   return (
     <div
@@ -83,58 +105,79 @@ export const MealCard = ({
           variant="ghost"
           className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary"
           onClick={onAddFood}
+          title="Yiyecek ekle"
         >
           <Plus className="h-5 w-5" />
         </Button>
       </div>
 
-      {plannedFoods.length > 0 && (
-        <div className="mb-3 pb-3 border-b border-border/50">
-          <div className="flex items-center gap-1.5 mb-2">
-            <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground font-medium">Listemde</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {plannedFoods.map((food) => {
-              const logged = isLogged(food.name);
-              return (
-                <button
-                  key={food.id}
-                  type="button"
-                  onClick={() => onAddPlannedFood?.(food)}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors ${
-                    logged
-                      ? 'bg-primary/5 text-muted-foreground'
-                      : 'bg-primary/10 hover:bg-primary/20 text-primary'
-                  }`}
-                  title={`${food.calories} kcal${logged ? ' · eklendi' : ' · eklemek için dokunun'}`}
-                >
-                  {logged ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                  {food.name}
-                </button>
-              );
-            })}
-          </div>
+      {hasPlan && (
+        <div className="space-y-1.5 pt-3 border-t border-border/50">
+          {pending.length > 1 && (
+            <button
+              type="button"
+              onClick={() => onAddPlannedFoods?.(pending)}
+              className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline mb-1"
+            >
+              <ListPlus className="h-3.5 w-3.5" />
+              Listedekilerin tümünü ekle ({pending.length})
+            </button>
+          )}
+
+          {visibleRows.map((row) => (
+            <div
+              key={row.planned.id}
+              onClick={() => toggleRow(row)}
+              className={`flex items-center gap-3 py-2 px-3 rounded-xl cursor-pointer transition-colors ${
+                row.logged ? 'bg-primary/10' : 'bg-background/50 hover:bg-background/80'
+              }`}
+            >
+              <Checkbox
+                checked={!!row.logged}
+                onCheckedChange={() => toggleRow(row)}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={row.planned.name}
+              />
+              <span className="flex-1 min-w-0 text-sm font-medium text-foreground truncate">
+                {row.planned.name}
+              </span>
+              <span className="text-xs text-muted-foreground shrink-0">
+                {(row.logged ?? row.planned).calories} kcal
+              </span>
+            </div>
+          ))}
+
+          {(hiddenCount > 0 || expanded) && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-3 py-1"
+            >
+              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              {expanded ? 'Daha az göster' : `${hiddenCount} tane daha göster`}
+            </button>
+          )}
         </div>
       )}
 
-      {/* Food list */}
-      {foods.length > 0 && (
-        <div className="space-y-2 mt-3 pt-3 border-t border-border/50">
-          {foods.map((food) => (
+      {extras.length > 0 && (
+        <div className="space-y-1.5 mt-3 pt-3 border-t border-border/50">
+          {hasPlan && (
+            <p className="text-xs font-medium text-muted-foreground px-1 mb-1">Liste dışı</p>
+          )}
+          {extras.map((food) => (
             <div
               key={food.id}
               className="flex items-center justify-between py-2 px-3 bg-background/50 rounded-xl group animate-scale-in"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {food.name}
-                </p>
+                <p className="text-sm font-medium text-foreground truncate">{food.name}</p>
                 <p className="text-xs text-muted-foreground">{food.calories} kcal</p>
               </div>
               <button
                 onClick={() => onRemoveFood(food.id)}
                 className="ml-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
+                aria-label={`${food.name} sil`}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -143,12 +186,11 @@ export const MealCard = ({
         </div>
       )}
 
-      {foods.length === 0 && (
+      {!hasPlan && foods.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">
           Henüz yiyecek eklenmedi
         </p>
       )}
-
     </div>
   );
 };
