@@ -4,10 +4,20 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMealRecognition, RecognizedFood } from '@/hooks/useMealRecognition';
 
+type AddedFood = { name: string; calories: number; protein?: number; carbs?: number; fat?: number };
+
 interface PhotoFoodRecognizerProps {
-  onAddFood: (food: { name: string; calories: number }) => void;
-  onAddAllFoods: (foods: { name: string; calories: number }[]) => void;
+  onAddFood: (food: AddedFood) => void;
+  onAddAllFoods: (foods: AddedFood[]) => void;
 }
+
+const toAddedFood = (food: RecognizedFood): AddedFood => ({
+  name: food.portion ? `${food.name} (${food.portion})` : food.name,
+  calories: food.calories,
+  protein: food.protein,
+  carbs: food.carbs,
+  fat: food.fat,
+});
 
 const confidenceConfig = {
   high: { label: 'Yüksek', icon: Check, className: 'text-green-600' },
@@ -39,13 +49,13 @@ export const PhotoFoodRecognizer = ({ onAddFood, onAddAllFoods }: PhotoFoodRecog
   };
 
   const handleAddSingle = (food: RecognizedFood, index: number) => {
-    onAddFood({ name: food.name, calories: food.calories });
+    onAddFood(toAddedFood(food));
     setAddedFoods(prev => new Set(prev).add(index));
   };
 
   const handleAddAll = () => {
     if (!result) return;
-    const foods = result.foods.map(f => ({ name: f.name, calories: f.calories }));
+    const foods = result.foods.map(toAddedFood);
     onAddAllFoods(foods);
     setAddedFoods(new Set(result.foods.map((_, i) => i)));
   };
