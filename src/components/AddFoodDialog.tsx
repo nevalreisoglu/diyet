@@ -1,20 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
-import { Search, Loader2, Check, AlertTriangle, Camera, Mic, TrendingUp } from 'lucide-react';
+import { Search, Loader2, Check, AlertTriangle, Camera, Mic, TrendingUp, Sparkles, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { PhotoFoodRecognizer } from '@/components/PhotoFoodRecognizer';
 import { VoiceFoodInput } from '@/components/VoiceFoodInput';
 import { useFrequentFoods } from '@/hooks/useFrequentFoods';
 import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { PremiumGate } from '@/components/PremiumGate';
-import { Lock } from 'lucide-react';
 
 interface AddFoodDialogProps {
   open: boolean;
@@ -23,6 +19,8 @@ interface AddFoodDialogProps {
   onAddFood: (mealType: MealType, food: { name: string; calories: number }) => void;
   userId?: string;
 }
+
+type Mode = 'search' | 'photo' | 'voice';
 
 const defaultQuickFoods = [
   { name: 'Elma', calories: 95 },
@@ -35,6 +33,9 @@ const defaultQuickFoods = [
   { name: 'Yoğurt (1 kase)', calories: 150 },
 ];
 
+const MAX_SUGGESTIONS = 10;
+const normalize = (s: string) => s.trim().toLocaleLowerCase('tr-TR');
+
 export const AddFoodDialog = ({
   open,
   onOpenChange,
@@ -42,25 +43,48 @@ export const AddFoodDialog = ({
   onAddFood,
   userId,
 }: AddFoodDialogProps) => {
+  const [mode, setMode] = useState<Mode>('search');
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [lookupInfo, setLookupInfo] = useState<{ portion?: string; confidence?: string; source?: string; cached?: boolean } | null>(null);
   const [originalCalories, setOriginalCalories] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState('default');
   const { toast } = useToast();
   const { foods: frequentFoods, loading: loadingFrequent } = useFrequentFoods(userId, open ? mealType : null);
   const { isPremium, createCheckout } = useSubscriptionContext();
 
-  const handleLookupCalories = async () => {
-    if (!name.trim()) {
-      toast({
-        title: "Hata",
-        description: "Önce yiyecek adını girin",
-        variant: "destructive",
-      });
-      return;
+  useEffect(() => {
+    if (!open) {
+      setMode('search');
+      setName('');
+      setCalories('');
+      setLookupInfo(null);
+      setOriginalCalories(null);
     }
+  }, [open]);
+
+  const suggestions = useMemo(() => {
+    const seen = new Set<string>();
+    const all: { name: string; calories: number; frequent: boolean }[] = [];
+    for (const f of frequentFoods) {
+      const key = normalize(f.name);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      all.push({ name: f.name, calories: f.calories, frequent: true });
+    }
+    for (const f of defaultQuickFoods) {
+      const key = normalize(f.name);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      all.push({ ...f, frequent: false });
+    }
+    const query = normalize(name);
+    const filtered = query ? all.filter((f) => normalize(f.name).includes(query)) : all;
+    return filtered.slice(0, MAX_SUGGESTIONS);
+  }, [frequentFoods, name]);
+
+  const handleLookupCalories = async () => {
+    if (!name.trim()) return;
 
     setIsLookingUp(true);
     setLookupInfo(null);
@@ -70,15 +94,8 @@ export const AddFoodDialog = ({
         body: { foodName: name.trim() },
       });
 
-      if (error) {
-        // data still contains the function's JSON response body even on non-2xx
-        const actualError = data?.error || error.message;
-        throw new Error(actualError);
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw new Error(data?.error || error.message);
+      if (data?.error) throw new Error(data.error);
 
       if (data?.calories) {
         setCalories(data.calories.toString());
@@ -89,57 +106,46 @@ export const AddFoodDialog = ({
           source: data.source,
           cached: data.cached,
         });
-        const sourceLabel = data.cached ? '(önbellekten)' : '(AI)';
-        toast({
-          title: "Kalori bulundu",
-          description: `${name} için: ${data.calories} kcal ${sourceLabel}${data.portion ? ` - ${data.portion}` : ''}`,
-        });
-      } else if (data?.error) {
-        throw new Error(data.error);
       }
     } catch (error) {
       console.error('Kalori arama hatası:', error);
       toast({
-        title: "Kalori bulunamadı",
-        description: error instanceof Error ? error.message : "Kalori araması başarısız oldu",
-        variant: "destructive",
+        title: 'Kalori bulunamadı',
+        description: error instanceof Error ? error.message : 'Kalori araması başarısız oldu',
+        variant: 'destructive',
       });
     } finally {
       setIsLookingUp(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mealType && name && calories) {
-      const cal = parseInt(calories);
-      // If user changed the AI value, save correction to cache
-      if (originalCalories && cal !== originalCalories && userId) {
-        try {
-          await supabase.functions.invoke('lookup-calories', {
-            body: { foodName: name.trim(), correctedCalories: cal },
-          });
-        } catch (err) {
-          console.error('Failed to save correction:', err);
-        }
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!mealType || !name.trim() || !calories) return;
+
+    const cal = parseInt(calories);
+    if (originalCalories && cal !== originalCalories && userId) {
+      try {
+        await supabase.functions.invoke('lookup-calories', {
+          body: { foodName: name.trim(), correctedCalories: cal },
+        });
+      } catch (err) {
+        console.error('Failed to save correction:', err);
       }
-      onAddFood(mealType, { name, calories: cal });
-      setName('');
-      setCalories('');
-      setLookupInfo(null);
-      setOriginalCalories(null);
-      onOpenChange(false);
     }
+    onAddFood(mealType, { name: name.trim(), calories: cal });
+    onOpenChange(false);
   };
 
   const handleQuickAdd = (food: { name: string; calories: number }) => {
-    if (mealType) {
-      onAddFood(mealType, food);
-      onOpenChange(false);
-    }
+    if (!mealType) return;
+    onAddFood(mealType, food);
+    onOpenChange(false);
   };
 
   if (!mealType) return null;
+
+  const toggleMode = (target: Mode) => setMode((m) => (m === target ? 'search' : target));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -147,207 +153,176 @@ export const AddFoodDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-foreground">
             <span className="text-2xl">{mealTypeIcons[mealType]}</span>
-            {mealTypeLabels[mealType]} - Yiyecek Ekle
+            {mealTypeLabels[mealType]}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto">
-          {/* Sık kullanılanlar */}
-          {(frequentFoods.length > 0 || loadingFrequent) && (
-            <div className="mb-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sık Kullandıkların</span>
-              </div>
-              {loadingFrequent ? (
+        <div className="flex-1 overflow-auto space-y-4">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setLookupInfo(null);
+                  setOriginalCalories(null);
+                }}
+                onFocus={() => setMode('search')}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return;
+                  e.preventDefault();
+                  if (calories) handleSubmit();
+                  else handleLookupCalories();
+                }}
+                placeholder="Yiyecek ara veya yaz…"
+                autoFocus
+                className="pl-9 bg-background border-input"
+              />
+            </div>
+            <Button
+              type="button"
+              variant={mode === 'photo' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => toggleMode('photo')}
+              title="Fotoğraftan tanı"
+              aria-label="Fotoğraftan tanı"
+            >
+              {isPremium ? <Camera className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            </Button>
+            <Button
+              type="button"
+              variant={mode === 'voice' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => toggleMode('voice')}
+              title="Sesle söyle"
+              aria-label="Sesle söyle"
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {mode === 'photo' && (
+            <PremiumGate
+              isPremium={isPremium}
+              createCheckout={createCheckout}
+              featureLabel="AI Fotoğraf Tanıma"
+              compact
+              bullets={[
+                'Yemek fotoğrafından otomatik kalori tespiti',
+                'Protein, karb ve yağ analizi',
+                'Çoklu yemek tanıma',
+              ]}
+            >
+              <PhotoFoodRecognizer
+                onAddFood={(food) => onAddFood(mealType, food)}
+                onAddAllFoods={(foods) => {
+                  foods.forEach((food) => onAddFood(mealType, food));
+                  onOpenChange(false);
+                }}
+              />
+            </PremiumGate>
+          )}
+
+          {mode === 'voice' && (
+            <VoiceFoodInput
+              onAddFood={(food) => {
+                onAddFood(mealType, food);
+                onOpenChange(false);
+              }}
+            />
+          )}
+
+          {mode === 'search' && (
+            <>
+              {loadingFrequent && !name && (
                 <div className="flex gap-2">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="h-8 w-20 rounded-full bg-muted animate-pulse" />
                   ))}
                 </div>
-              ) : (
+              )}
+
+              {suggestions.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {frequentFoods.map((food) => (
+                  {suggestions.map((food) => (
                     <button
                       key={food.name}
+                      type="button"
                       onClick={() => handleQuickAdd({ name: food.name, calories: food.calories })}
-                      className="px-3 py-1.5 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors flex items-center gap-1.5"
-                      title={`${food.calories} kcal · ${food.count}x kullanıldı`}
+                      className={`px-3 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1.5 ${
+                        food.frequent
+                          ? 'bg-primary/10 hover:bg-primary/20 text-primary'
+                          : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                      }`}
+                      title={food.frequent ? 'Sık kullandığınız' : undefined}
                     >
+                      {food.frequent && <TrendingUp className="h-3 w-3" />}
                       {food.name}
                       <span className="text-xs opacity-60">{food.calories}</span>
                     </button>
                   ))}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Quick add section with tabs */}
-          <Tabs defaultValue="default" className="w-full" onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-3">
-              <TabsTrigger value="default">Genel</TabsTrigger>
-              <TabsTrigger value="photo" className="flex items-center gap-1">
-                {isPremium ? <Camera className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                Foto
-              </TabsTrigger>
-              <TabsTrigger value="voice" className="flex items-center gap-1">
-                <Mic className="h-3 w-3" />
-                Ses
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="default" className="mt-0">
-              <Label className="text-muted-foreground text-sm">Hızlı Ekle</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {defaultQuickFoods.map((food) => (
-                  <button
-                    key={food.name}
-                    onClick={() => handleQuickAdd(food)}
-                    className="px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-full transition-colors"
-                  >
-                    {food.name}
-                  </button>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="photo" className="mt-0">
-              <PremiumGate
-                isPremium={isPremium}
-                createCheckout={createCheckout}
-                featureLabel="AI Fotoğraf Tanıma"
-                compact
-                bullets={[
-                  'Yemek fotoğrafından otomatik kalori tespiti',
-                  'Protein, karb ve yağ analizi',
-                  'Çoklu yemek tanıma',
-                ]}
-              >
-                <Label className="text-muted-foreground text-sm">Yemeğin fotoğrafını çekin veya galeriden seçin</Label>
-                <div className="mt-2">
-                  <PhotoFoodRecognizer
-                    onAddFood={(food) => {
-                      if (mealType) {
-                        onAddFood(mealType, food);
-                      }
-                    }}
-                    onAddAllFoods={(foods) => {
-                      if (mealType) {
-                        foods.forEach(food => onAddFood(mealType, food));
-                        onOpenChange(false);
-                      }
-                    }}
-                  />
-                </div>
-              </PremiumGate>
-            </TabsContent>
-
-            <TabsContent value="voice" className="mt-0">
-              <VoiceFoodInput
-                onAddFood={(food) => {
-                  if (mealType) {
-                    onAddFood(mealType, food);
-                    onOpenChange(false);
-                  }
-                }}
-              />
-            </TabsContent>
-          </Tabs>
-
-          {activeTab !== 'voice' && activeTab !== 'photo' && (
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">veya</span>
-            </div>
-          </div>
-          )}
-
-          {/* Custom food form */}
-          {activeTab !== 'voice' && activeTab !== 'photo' && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-foreground">Yiyecek Adı</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="örn: Tavuk sote"
-                className="bg-background border-input"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="calories" className="text-foreground">Kalori (kcal)</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="calories"
-                  type="number"
-                  value={calories}
-                  onChange={(e) => setCalories(e.target.value)}
-                  placeholder="örn: 250"
-                  className="bg-background border-input flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleLookupCalories}
-                  disabled={isLookingUp || !name.trim()}
-                  title="Kaloriyi otomatik bul"
-                >
-                  {isLookingUp ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              {lookupInfo && (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs">
-                    {lookupInfo.confidence === 'high' && (
-                      <span className="flex items-center gap-1 text-green-600"><Check className="h-3 w-3" /> Yüksek güven</span>
-                    )}
-                    {lookupInfo.confidence === 'medium' && (
-                      <span className="flex items-center gap-1 text-yellow-600"><AlertTriangle className="h-3 w-3" /> Orta güven</span>
-                    )}
-                    {lookupInfo.confidence === 'low' && (
-                      <span className="flex items-center gap-1 text-red-500"><AlertTriangle className="h-3 w-3" /> Düşük güven</span>
-                    )}
-                    {lookupInfo.cached && (
-                      <span className="text-muted-foreground">• Önbellekten</span>
-                    )}
-                    {lookupInfo.source === 'user' && (
-                      <span className="text-muted-foreground">• Doğrulanmış</span>
-                    )}
+              {name.trim() && (
+                <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-border bg-background/50 p-3">
+                  <p className="text-sm text-foreground">
+                    <span className="font-medium">{name.trim()}</span> için kalori
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={calories}
+                      onChange={(e) => setCalories(e.target.value)}
+                      placeholder="kcal"
+                      className="bg-background border-input flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleLookupCalories}
+                      disabled={isLookingUp}
+                      className="gap-1.5 shrink-0"
+                    >
+                      {isLookingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      Bul
+                    </Button>
                   </div>
-                  {lookupInfo.portion && (
-                    <p className="text-xs text-muted-foreground">Porsiyon: {lookupInfo.portion}</p>
-                  )}
-                  {originalCalories && parseInt(calories) !== originalCalories && (
-                    <p className="text-xs text-primary">
-                      ✓ Değeri düzelttiniz ({originalCalories} → {calories}). Ekle'ye basınca kaydedilecek.
+                  {lookupInfo && (
+                    <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                      {lookupInfo.confidence === 'high' && (
+                        <span className="flex items-center gap-1 text-green-600"><Check className="h-3 w-3" /> Yüksek güven</span>
+                      )}
+                      {lookupInfo.confidence === 'medium' && (
+                        <span className="flex items-center gap-1 text-yellow-600"><AlertTriangle className="h-3 w-3" /> Orta güven</span>
+                      )}
+                      {lookupInfo.confidence === 'low' && (
+                        <span className="flex items-center gap-1 text-red-500"><AlertTriangle className="h-3 w-3" /> Düşük güven</span>
+                      )}
+                      {lookupInfo.portion && <span>Porsiyon: {lookupInfo.portion}</span>}
+                      {lookupInfo.cached && <span>Önbellekten</span>}
+                      {lookupInfo.source === 'user' && <span>Doğrulanmış</span>}
+                      {originalCalories && calories && parseInt(calories) !== originalCalories && (
+                        <span className="text-primary">Düzelttiniz: {originalCalories} → {calories}</span>
+                      )}
                     </p>
                   )}
-                </div>
+                  <Button
+                    type="submit"
+                    className="w-full gradient-primary text-primary-foreground hover:opacity-90"
+                    disabled={!calories}
+                  >
+                    Ekle
+                  </Button>
+                </form>
               )}
-              {!lookupInfo && (
-                <p className="text-xs text-muted-foreground">
-                  Yiyecek adını girdikten sonra 🔍 butonuna tıklayarak kaloriyi otomatik bulabilirsiniz
-                </p>
+
+              {!name.trim() && !loadingFrequent && suggestions.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">Yiyecek adını yazın</p>
               )}
-            </div>
-            <Button
-              type="submit"
-              className="w-full gradient-primary text-primary-foreground hover:opacity-90"
-              disabled={!name || !calories}
-            >
-              Ekle
-            </Button>
-          </form>
+            </>
           )}
         </div>
       </DialogContent>

@@ -81,7 +81,7 @@ const sections = [
       },
       {
         name: 'Diyet Listesi Yükleme',
-        desc: 'Ayarlar sayfasından diyetisyeninizin verdiği listeyi PDF, fotoğraf, Excel, Word veya metin olarak yükleyin. Yiyecekler ana sayfada ilgili öğünün üstünde görünür; dokunarak tek seferde ekleyebilirsiniz. Listede öğün saatleri varsa onlar da alınır.',
+        desc: 'Ayarlar sayfasından diyetisyeninizin verdiği listeyi PDF, fotoğraf, Excel, Word veya metin olarak yükleyin. Yiyecekler ana sayfada ilgili öğün kartında onay kutulu satırlar olarak görünür; işaretledikçe günlüğe eklenir, "tümünü ekle" ile hepsini tek seferde ekleyebilirsiniz. Listede öğün saatleri varsa onlar da alınır.',
       },
     ],
   },
