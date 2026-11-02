@@ -26,6 +26,7 @@ jobs:
           supabase functions deploy parse-food-pdf --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
           supabase functions deploy parse-measurements --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
           supabase functions deploy daily-coach --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          supabase functions deploy plan-assist --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
           supabase functions deploy create-checkout --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
           supabase functions deploy lemon-webhook --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
           supabase functions deploy sync-subscription --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}

@@ -204,5 +204,63 @@ export const usePlanDay = (dietitianId: string | undefined, clientId: string | u
     if (insertError) throw insertError;
   });
 
-  return { day, items, loading, saving, addItems, removeItem, saveNote, clearDay, copyTo, copyToNextDays, importClientList, refetch };
+  const invokeAssist = async (body: Record<string, unknown>) => {
+    const { data, error } = await supabase.functions.invoke('plan-assist', { body });
+    if (error) throw new Error(data?.error || error.message);
+    if (!data?.success) throw new Error(data?.error || 'AI yanıt vermedi');
+    return data.items as { name: string; mealType: MealType | null; calories: number; protein: number | null; carbs: number | null; fat: number | null }[];
+  };
+
+  // Kalorisi girilmemiş satırları tek AI isteğiyle hesaplar
+  const estimateMissing = () => run('Kalori hesaplama', async () => {
+    const missing = items.filter((i) => !i.calories);
+    if (missing.length === 0) {
+      toast({ title: 'Hesaplanacak satır yok', description: 'Tüm satırların kalorisi girilmiş.' });
+      return;
+    }
+    const results = await invokeAssist({ mode: 'estimate', items: missing.map((i) => ({ name: i.name })) });
+    for (let i = 0; i < missing.length; i++) {
+      const r = results[i];
+      if (!r || !r.calories) continue;
+      const { error } = await supabase
+        .from('plan_items')
+        .update({ calories: r.calories, protein: r.protein, carbs: r.carbs, fat: r.fat })
+        .eq('id', missing[i].id);
+      if (error) throw error;
+    }
+    toast({ title: 'Kaloriler hesaplandı', description: `${missing.length} satır güncellendi.` });
+  });
+
+  // Serbest metni öğünlere dağıtıp kalorileriyle birlikte ekler
+  const parseText = (text: string) => run('Metni işleme', async () => {
+    const results = await invokeAssist({ mode: 'parse', text });
+    const valid = results.filter((r) => r.mealType);
+    if (valid.length === 0) {
+      toast({ title: 'Yiyecek bulunamadı', description: 'Metinde öğün/yiyecek tanınamadı.', variant: 'destructive' });
+      return;
+    }
+    const d = await ensureDay();
+    const { error } = await supabase.from('plan_items').insert(
+      valid.map((r, i) => ({
+        plan_day_id: d.id,
+        client_id: clientId!,
+        meal_type: r.mealType!,
+        name: r.name,
+        calories: r.calories,
+        protein: r.protein,
+        carbs: r.carbs,
+        fat: r.fat,
+        sort_order: items.length + i,
+      }))
+    );
+    if (error) throw error;
+    toast({ title: 'Plan eklendi', description: `${valid.length} yiyecek öğünlere dağıtıldı.` });
+  });
+
+  const updateCalories = (id: string, calories: number) => run('Güncelleme', async () => {
+    const { error } = await supabase.from('plan_items').update({ calories }).eq('id', id);
+    if (error) throw error;
+  });
+
+  return { day, items, loading, saving, addItems, removeItem, saveNote, clearDay, copyTo, copyToNextDays, importClientList, estimateMissing, parseText, updateCalories, refetch };
 };
