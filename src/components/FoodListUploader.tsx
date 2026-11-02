@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCustomFoods } from '@/hooks/useCustomFoods';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
-import { FOOD_LIST_ACCEPT } from '@/lib/foodListFile';
+import { UPLOAD_ACCEPT } from '@/lib/filePayload';
 
 const mealOrder: MealType[] = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner', 'snack3'];
 
@@ -43,7 +43,7 @@ export const FoodListUploader = ({ userId }: FoodListUploaderProps) => {
         <input
           ref={inputRef}
           type="file"
-          accept={FOOD_LIST_ACCEPT}
+          accept={UPLOAD_ACCEPT}
           className="hidden"
           onChange={handleFileChange}
         />

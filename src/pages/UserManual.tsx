@@ -80,6 +80,10 @@ const sections = [
         desc: 'Mikrofon simgesine basılı tutun ve "200 gram tavuk göğsü" gibi söyleyin. Uygulama sesi metne çevirip otomatik arama yapar.',
       },
       {
+        name: 'Ölçüm Sonuçları Yükleme',
+        desc: 'Ayarlar sayfasından InBody/Tanita çıktısı, akıllı tartı raporu veya diyetisyen ölçüm formunu (PDF, fotoğraf, Excel, Word) yükleyin. Kilo, yağ oranı, kas kütlesi, bel çevresi gibi değerler kaydedilir; Metabolik İkiz sayfasındaki "Ölçümler" sekmesinde geçmişinizi görür, hesaplamalar ve what-if senaryoları bu ölçümlere göre güncellenir.',
+      },
+      {
         name: 'Diyet Listesi Yükleme',
         desc: 'Ayarlar sayfasından diyetisyeninizin verdiği listeyi PDF, fotoğraf, Excel, Word veya metin olarak yükleyin. Yiyecekler ana sayfada ilgili öğün kartında onay kutulu satırlar olarak görünür; işaretledikçe günlüğe eklenir, "tümünü ekle" ile hepsini tek seferde ekleyebilirsiniz. Listede öğün saatleri varsa onlar da alınır.',
       },

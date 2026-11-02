@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchBodyMeasurements, BodyMeasurement } from '@/hooks/useBodyMeasurements';
+
+export type BmrSource = 'measured' | 'bodyFat' | 'formula';
 
 export interface MetabolicProfile {
   age: number | null;
@@ -10,9 +13,13 @@ export interface MetabolicProfile {
   targetCalories: number;
   targetWaterMl: number;
   bmr: number | null;
+  bmrSource: BmrSource | null;
   tdee: number | null;
   bmi: number | null;
   bmiCategory: string | null;
+  latestMeasurement: BodyMeasurement | null;
+  previousMeasurement: BodyMeasurement | null;
+  measurements: BodyMeasurement[];
 }
 
 export interface RecentMetrics {
@@ -29,6 +36,10 @@ const calculateBMR = (weight: number, height: number, age: number, gender: 'male
   if (gender === 'male') return 10 * weight + 6.25 * height - 5 * age + 5;
   return 10 * weight + 6.25 * height - 5 * age - 161;
 };
+
+// Katch-McArdle: yağsız kütleye dayalı, yağ oranı biliniyorsa daha isabetli
+const calculateBMRFromBodyFat = (weight: number, bodyFatPct: number): number =>
+  370 + 21.6 * (weight * (1 - bodyFatPct / 100));
 
 const calculateBMI = (weight: number, heightCm: number): number => {
   const heightM = heightCm / 100;
@@ -58,31 +69,56 @@ export const useMetabolicProfile = (userId: string | undefined) => {
         .eq('user_id', userId)
         .maybeSingle();
 
+      let measurements: BodyMeasurement[] = [];
+      try {
+        measurements = await fetchBodyMeasurements(userId, 24);
+      } catch (err) {
+        console.error('Body measurements error:', err);
+      }
+      const latestMeasurement = measurements[0] ?? null;
+      const previousMeasurement = measurements[1] ?? null;
+
       const age = profileData?.age ?? null;
       const gender = (profileData?.gender as 'male' | 'female') ?? null;
       const heightCm = profileData?.height_cm ? Number(profileData.height_cm) : null;
-      const currentWeight = profileData?.current_weight_kg ? Number(profileData.current_weight_kg) : null;
+      const currentWeight = profileData?.current_weight_kg
+        ? Number(profileData.current_weight_kg)
+        : latestMeasurement?.weight_kg ?? null;
       const targetCalories = profileData?.target_calories ?? 2000;
       const targetWaterMl = profileData?.target_water_ml ?? 2000;
 
       let bmr: number | null = null;
+      let bmrSource: BmrSource | null = null;
       let tdee: number | null = null;
       let bmi: number | null = null;
       let bmiCategory: string | null = null;
 
-      if (currentWeight && heightCm && age && gender) {
+      if (latestMeasurement?.bmr_kcal) {
+        bmr = Math.round(latestMeasurement.bmr_kcal);
+        bmrSource = 'measured';
+      } else if (currentWeight && latestMeasurement?.body_fat_pct) {
+        bmr = Math.round(calculateBMRFromBodyFat(currentWeight, latestMeasurement.body_fat_pct));
+        bmrSource = 'bodyFat';
+      } else if (currentWeight && heightCm && age && gender) {
         bmr = Math.round(calculateBMR(currentWeight, heightCm, age, gender));
+        bmrSource = 'formula';
+      }
+      if (bmr) {
         tdee = Math.round(bmr * 1.55); // moderate activity default
       }
       if (currentWeight && heightCm) {
         bmi = Math.round(calculateBMI(currentWeight, heightCm) * 10) / 10;
+        bmiCategory = getBMICategory(bmi);
+      } else if (latestMeasurement?.bmi) {
+        bmi = Math.round(latestMeasurement.bmi * 10) / 10;
         bmiCategory = getBMICategory(bmi);
       }
 
       setProfile({
         age, gender, heightCm, currentWeight,
         targetWeight: profileData?.target_weight_kg ? Number(profileData.target_weight_kg) : null,
-        targetCalories, targetWaterMl, bmr, tdee, bmi, bmiCategory,
+        targetCalories, targetWaterMl, bmr, bmrSource, tdee, bmi, bmiCategory,
+        latestMeasurement, previousMeasurement, measurements,
       });
 
       // Fetch last 14 days of data for averages

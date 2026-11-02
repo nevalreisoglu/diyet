@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { prepareFoodListPayload } from '@/lib/foodListFile';
+import { prepareFilePayload } from '@/lib/filePayload';
 
 export interface CustomFood {
   id: string;
@@ -47,7 +47,7 @@ export const useCustomFoods = (userId: string | undefined, onSchedulesUpdated?: 
 
     setUploading(true);
     try {
-      const payload = await prepareFoodListPayload(file);
+      const payload = await prepareFilePayload(file);
 
       const { data, error } = await supabase.functions.invoke('parse-food-pdf', { body: payload });
 

@@ -1,6 +1,6 @@
-export type FoodListPayload = { fileBase64: string; mimeType: string } | { text: string };
+export type FilePayload = { fileBase64: string; mimeType: string } | { text: string };
 
-export const FOOD_LIST_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,.xlsx,.xls,.csv,.docx,.txt';
+export const UPLOAD_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,.xlsx,.xls,.csv,.docx,.txt';
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const INLINE_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -14,7 +14,7 @@ const readAsBase64 = (file: File) =>
 
 const extensionOf = (file: File) => file.name.split('.').pop()?.toLowerCase() ?? '';
 
-export async function prepareFoodListPayload(file: File): Promise<FoodListPayload> {
+export async function prepareFilePayload(file: File): Promise<FilePayload> {
   if (file.size > MAX_FILE_BYTES) {
     throw new Error('Dosya 8 MB sınırını aşıyor.');
   }

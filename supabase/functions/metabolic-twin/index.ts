@@ -9,7 +9,33 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { scenario, profile, recentData } = await req.json();
+    const { scenario, profile, recentData, measurements } = await req.json();
+
+    const measurementFields: [string, string, string][] = [
+      ['weight_kg', 'Kilo', 'kg'],
+      ['body_fat_pct', 'Yağ oranı', '%'],
+      ['muscle_mass_kg', 'Kas kütlesi', 'kg'],
+      ['visceral_fat_level', 'İç organ yağı seviyesi', ''],
+      ['body_water_pct', 'Vücut suyu', '%'],
+      ['bone_mass_kg', 'Kemik kütlesi', 'kg'],
+      ['bmr_kcal', 'Cihaz ölçümlü BMR', 'kcal'],
+      ['waist_cm', 'Bel çevresi', 'cm'],
+      ['hip_cm', 'Kalça çevresi', 'cm'],
+    ];
+    const describeMeasurement = (m: any, prev: any) =>
+      measurementFields
+        .filter(([key]) => m[key] !== null && m[key] !== undefined)
+        .map(([key, label, unit]) => {
+          const delta = prev && prev[key] !== null && prev[key] !== undefined ? Number(m[key]) - Number(prev[key]) : null;
+          const deltaText = delta !== null && Math.abs(delta) >= 0.05
+            ? ` (önceki ölçüme göre ${delta > 0 ? '+' : ''}${Math.round(delta * 10) / 10}${unit})`
+            : '';
+          return `- ${label}: ${m[key]}${unit}${deltaText}`;
+        })
+        .join('\n');
+    const measurementSection = measurements?.latest
+      ? `\n\nSon vücut ölçümü (${measurements.latest.measured_at}${measurements.previous ? `, önceki: ${measurements.previous.measured_at}` : ''}):\n${describeMeasurement(measurements.latest, measurements.previous)}${measurements.latest.notes ? `\nÖlçüm notu: ${measurements.latest.notes}` : ''}\nBu ölçümleri (özellikle yağ oranı, kas kütlesi ve değişim yönü) analizinde mutlaka dikkate al.`
+      : '';
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) {
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY is not configured" }), {
@@ -28,13 +54,14 @@ Kullanıcı profili:
 - Hedef Kilo: ${profile.targetWeight ? profile.targetWeight + ' kg' : 'Bilinmiyor'}
 - Günlük Kalori Hedefi: ${profile.targetCalories} kcal
 - Su Hedefi: ${profile.targetWaterMl} ml
+- BMR: ${profile.bmr ? `${profile.bmr} kcal (${profile.bmrSource === 'measured' ? 'cihaz ölçümü' : profile.bmrSource === 'bodyFat' ? 'yağ oranından hesaplandı' : 'formülle hesaplandı'})` : 'Bilinmiyor'}
 
 Son ${recentData?.length || 0} günlük ortalama veriler:
 - Ortalama Kalori: ${recentData?.avgCalories || 0} kcal
 - Ortalama Su: ${recentData?.avgWater || 0} ml
 - Ortalama Egzersiz: ${recentData?.avgExercise || 0} dk
 - Ortalama Kahve: ${recentData?.avgCoffee || 0} fincan
-- Ortalama Çay: ${recentData?.avgTea || 0} fincan`;
+- Ortalama Çay: ${recentData?.avgTea || 0} fincan${measurementSection}`;
 
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
       method: "POST",

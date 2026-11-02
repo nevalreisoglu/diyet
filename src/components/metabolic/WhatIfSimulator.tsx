@@ -52,7 +52,13 @@ export const WhatIfSimulator = ({ profile, recentMetrics, userId }: Props) => {
             targetWeight: profile.targetWeight,
             targetCalories: profile.targetCalories,
             targetWaterMl: profile.targetWaterMl,
+            bmr: profile.bmr,
+            bmrSource: profile.bmrSource,
           },
+          measurements: profile.latestMeasurement ? {
+            latest: profile.latestMeasurement,
+            previous: profile.previousMeasurement,
+          } : null,
           recentData: recentMetrics ? {
             avgCalories: recentMetrics.avgCalories,
             avgWater: recentMetrics.avgWater,
