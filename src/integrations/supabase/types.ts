@@ -170,6 +170,45 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_summaries: {
+        Row: {
+          created_at: string
+          focus: string | null
+          headline: string
+          id: string
+          inputs: Json | null
+          message: string
+          summary_date: string
+          tone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          focus?: string | null
+          headline: string
+          id?: string
+          inputs?: Json | null
+          message: string
+          summary_date?: string
+          tone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          focus?: string | null
+          headline?: string
+          id?: string
+          inputs?: Json | null
+          message?: string
+          summary_date?: string
+          tone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_foods: {
         Row: {
           calories: number

@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 export type AchievementType = 
   | 'exercise_goal' 
   | 'calorie_goal' 
-  | 'water_goal' 
-  | 'low_caffeine';
+  | 'water_goal'
+  | 'low_caffeine'
+  | 'plan_adherence';
 
 interface Achievement {
   id: string;
@@ -45,6 +46,12 @@ export const achievementConfigs: AchievementConfig[] = [
     label: 'Kafein Kontrolcüsü',
     icon: '☕',
     description: 'Günde 3 veya daha az kahve/çay içtiniz!',
+  },
+  {
+    type: 'plan_adherence',
+    label: 'Listeye Sadık',
+    icon: '📋',
+    description: 'Diyet listenizdeki her şeyi eksiksiz uyguladınız!',
   },
 ];
 
@@ -126,6 +133,7 @@ export const useAchievements = (userId: string | undefined) => {
     targetWater: number;
     coffeeCount: number;
     teaCount: number;
+    adherence?: { planned: number; done: number } | null;
   }) => {
     const newAchievements: AchievementType[] = [];
 
@@ -153,6 +161,12 @@ export const useAchievements = (userId: string | undefined) => {
     if (totalCaffeine <= 3 && totalCaffeine > 0 && !hasAchievement('low_caffeine')) {
       await awardAchievement('low_caffeine');
       newAchievements.push('low_caffeine');
+    }
+
+    // Plan adherence: every planned item logged
+    if (stats.adherence && stats.adherence.planned > 0 && stats.adherence.done >= stats.adherence.planned && !hasAchievement('plan_adherence')) {
+      await awardAchievement('plan_adherence');
+      newAchievements.push('plan_adherence');
     }
 
     return newAchievements;
