@@ -3,7 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
-import { Search, Loader2, Check, AlertTriangle, Camera, Mic, TrendingUp, Sparkles, Lock } from 'lucide-react';
+import { Search, Loader2, Check, AlertTriangle, Camera, Mic, TrendingUp, Sparkles, Lock, Barcode } from 'lucide-react';
+import { BarcodeFoodInput } from '@/components/BarcodeFoodInput';
+import type { NewFood } from '@/hooks/useNutritionData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PhotoFoodRecognizer } from '@/components/PhotoFoodRecognizer';
@@ -16,11 +18,11 @@ interface AddFoodDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mealType: MealType | null;
-  onAddFood: (mealType: MealType, food: { name: string; calories: number }) => void;
+  onAddFood: (mealType: MealType, food: NewFood) => void;
   userId?: string;
 }
 
-type Mode = 'search' | 'photo' | 'voice';
+type Mode = 'search' | 'photo' | 'voice' | 'barcode';
 
 const defaultQuickFoods = [
   { name: 'Elma', calories: 95 },
@@ -200,7 +202,26 @@ export const AddFoodDialog = ({
             >
               <Mic className="h-4 w-4" />
             </Button>
+            <Button
+              type="button"
+              variant={mode === 'barcode' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => toggleMode('barcode')}
+              title="Barkod ile ekle"
+              aria-label="Barkod ile ekle"
+            >
+              <Barcode className="h-4 w-4" />
+            </Button>
           </div>
+
+          {mode === 'barcode' && (
+            <BarcodeFoodInput
+              onAddFood={(food) => {
+                onAddFood(mealType, food);
+                onOpenChange(false);
+              }}
+            />
+          )}
 
           {mode === 'photo' && (
             <PremiumGate

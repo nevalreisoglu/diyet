@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { CalorieProgress } from '@/components/CalorieProgress';
+import { MacroStats } from '@/components/MacroStats';
+import { sumMacros } from '@/lib/macros';
+import type { NewFood } from '@/hooks/useNutritionData';
 import { QuickStats } from '@/components/QuickStats';
 import { MealCard } from '@/components/MealCard';
 import { AddFoodDialog } from '@/components/AddFoodDialog';
@@ -69,6 +72,10 @@ const Index = () => {
     () => computePlanAdherence(customFoods, getMealFoods),
     [customFoods, getMealFoods]
   );
+
+  const allFoods = useMemo(() => meals.flatMap((m) => m.foods), [meals]);
+  const macroTotals = useMemo(() => sumMacros(allFoods), [allFoods]);
+  const itemsWithoutMacros = allFoods.filter((f) => f.protein == null && f.carbs == null && f.fat == null).length;
 
   const buildCoachStats = (): CoachStats => {
     const latest = measurements[0];
@@ -142,7 +149,7 @@ const Index = () => {
     setDialogOpen(true);
   };
 
-  const handleAddFood = (mealType: MealType, food: { name: string; calories: number }) => {
+  const handleAddFood = (mealType: MealType, food: NewFood) => {
     addFood(mealType, food);
   };
 
@@ -168,6 +175,9 @@ const Index = () => {
       <main className="container max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-safe space-y-8">
         {/* Calorie Progress */}
         <CalorieProgress current={totalCalories} target={targetCalories} />
+
+        {/* Macros */}
+        <MacroStats totals={macroTotals} targetCalories={targetCalories} itemsWithoutMacros={itemsWithoutMacros} />
 
         {/* Quick Stats */}
         <QuickStats
@@ -242,7 +252,7 @@ const Index = () => {
                 plannedFoods={customFoods.filter((f) => f.meal_type === mealType)}
                 scheduledTime={getScheduleForMeal(mealType)}
                 onAddFood={() => handleOpenAddFood(mealType)}
-                onAddPlannedFoods={(list) => addFoods(mealType, list.map((f) => ({ name: f.name, calories: f.calories })))}
+                onAddPlannedFoods={(list) => addFoods(mealType, list.map((f) => ({ name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat })))}
                 onRemoveFood={(foodId) => removeFood(mealType, foodId)}
                 onUpdateTime={(time) => updateSchedule(mealType, time)}
                 onClearTime={() => clearSchedule(mealType)}

@@ -9,6 +9,14 @@ interface MealWithFoods {
   foods: FoodItem[];
 }
 
+export interface NewFood {
+  name: string;
+  calories: number;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+}
+
 export const useNutritionData = (userId: string | undefined) => {
   const [meals, setMeals] = useState<MealWithFoods[]>([]);
   const [targetCalories, setTargetCalories] = useState(1500);
@@ -75,7 +83,7 @@ export const useNutritionData = (userId: string | undefined) => {
   }, [fetchMeals, fetchProfile]);
 
   const addFoods = useCallback(
-    async (mealType: MealType, foods: { name: string; calories: number }[]) => {
+    async (mealType: MealType, foods: NewFood[]) => {
       if (!userId || foods.length === 0) return;
 
       try {
@@ -100,7 +108,14 @@ export const useNutritionData = (userId: string | undefined) => {
         }
 
         const { error: foodError } = await supabase.from('food_items').insert(
-          foods.map((food) => ({ meal_id: mealId, name: food.name, calories: food.calories }))
+          foods.map((food) => ({
+            meal_id: mealId,
+            name: food.name,
+            calories: food.calories,
+            protein: food.protein ?? null,
+            carbs: food.carbs ?? null,
+            fat: food.fat ?? null,
+          }))
         );
 
         if (foodError) throw foodError;
@@ -124,7 +139,7 @@ export const useNutritionData = (userId: string | undefined) => {
   );
 
   const addFood = useCallback(
-    (mealType: MealType, food: { name: string; calories: number }) => addFoods(mealType, [food]),
+    (mealType: MealType, food: NewFood) => addFoods(mealType, [food]),
     [addFoods]
   );
 

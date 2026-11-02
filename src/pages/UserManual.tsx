@@ -80,6 +80,14 @@ const sections = [
         desc: 'Mikrofon simgesine basılı tutun ve "200 gram tavuk göğsü" gibi söyleyin. Uygulama sesi metne çevirip otomatik arama yapar.',
       },
       {
+        name: 'Barkod ile Ekleme',
+        desc: 'Öğün ekleme penceresindeki barkod simgesine basın; paketin barkodunu kamerayla okutun ya da numarasını yazın. Ürün bilgisi Open Food Facts veri tabanından gelir; gram miktarını girince kalori ve makrolar otomatik hesaplanır.',
+      },
+      {
+        name: 'Makro Takibi',
+        desc: 'Ana sayfadaki "Makrolar" kartı günün protein, karbonhidrat ve yağ toplamını kalori hedefinden türetilen (%30 / %40 / %30) hedeflere göre gösterir. Liste, fotoğraf ve barkodla eklenen yiyeceklerde makrolar otomatik gelir; elle girilenlerde yalnızca kalori sayılır.',
+      },
+      {
         name: 'Hatırlatıcılar',
         desc: 'Ayarlar → Hatırlatıcılar bölümünden öğün saati ve su molası bildirimlerini açın. Öğün bildirimlerinde o öğün için listenizdeki yiyecekler görünür. Telefon uygulamasında bildirimler arka planda gelir; tarayıcıda yalnızca uygulama açıkken çalışır.',
       },
