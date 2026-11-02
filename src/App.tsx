@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import { BottomNavBar } from "./components/BottomNavBar";
 import { TestModeBanner } from "./components/TestModeBanner";
+import { PAYMENTS_ENABLED } from "./config/features";
 import { IOSInstallBanner } from "./components/IOSInstallBanner";
 import { useMobileCapacitor } from "./hooks/useMobileCapacitor";
 import { useAuth } from "./hooks/useAuth";
@@ -31,7 +32,7 @@ function AppContent() {
 
   return (
     <>
-      <TestModeBanner />
+      {PAYMENTS_ENABLED && <TestModeBanner />}
       <IOSInstallBanner />
       <Routes>
         <Route path="/" element={<Index />} />
