@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { PAYMENTS_ENABLED } from '@/config/features';
 import { UpgradeDialog } from '@/components/UpgradeDialog';
+import { FoodListUploader } from '@/components/FoodListUploader';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -219,6 +220,8 @@ const Settings = () => {
 
         <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} createCheckout={createCheckout} />
         </>)}
+
+        <FoodListUploader userId={user.id} />
 
         <Card>
           <CardHeader>

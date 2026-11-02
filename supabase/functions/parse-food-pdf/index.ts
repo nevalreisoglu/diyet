@@ -42,11 +42,19 @@ serve(async (req) => {
     const userId = data.user.id;
     console.log(`Authenticated user: ${userId}`);
 
-    const { pdfBase64 } = await req.json();
+    const { fileBase64, mimeType, text } = await req.json();
 
-    if (!pdfBase64) {
+    const hasFile = typeof fileBase64 === 'string' && fileBase64.length > 0 && typeof mimeType === 'string';
+    const hasText = typeof text === 'string' && text.trim().length > 0;
+    if (!hasFile && !hasText) {
       return new Response(
-        JSON.stringify({ error: 'PDF data is required' }),
+        JSON.stringify({ error: 'Dosya içeriği gerekli' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (hasFile && !/^(application\/pdf|image\/(jpeg|png|webp|gif))$/.test(mimeType)) {
+      return new Response(
+        JSON.stringify({ error: 'Desteklenmeyen dosya türü' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -59,21 +67,28 @@ serve(async (req) => {
       );
     }
 
-    console.log('Parsing PDF with Gemini vision...');
+    console.log(`Parsing food list with Gemini (${hasFile ? mimeType : 'text'})...`);
 
-    // Use multimodal AI to extract food items AND meal schedules from PDF
-    const aiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', {
+    const sourceDescription = hasFile
+      ? (mimeType === 'application/pdf' ? 'Bu PDF dosyasındaki' : 'Bu görseldeki')
+      : 'Aşağıdaki metindeki';
+    const contentPart = hasFile
+      ? { inlineData: { mimeType, data: fileBase64 } }
+      : { text: `--- LİSTE ---\n${text.slice(0, 60000)}\n--- LİSTE SONU ---` };
+
+    const aiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
       method: 'POST',
       headers: {
         'x-goog-api-key': GEMINI_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        generationConfig: { responseMimeType: 'application/json' },
         contents: [
           {
             parts: [
               {
-                text: `Sen bir beslenme uzmanısın. Bu PDF dosyasındaki yiyecek listesini ve öğün saatlerini analiz et.
+                text: `Sen bir beslenme uzmanısın. ${sourceDescription} yiyecek listesini ve öğün saatlerini analiz et.
 
 Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
 {
@@ -100,14 +115,10 @@ Kurallar:
   - 2. ara öğün besinleri için "snack2"
   - 3. ara öğün besinleri için "snack3"
 - Öğün saatleri metinde varsa onları kullan, yoksa varsayılan değerleri kullan
-- Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et`
+- Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et
+- Dosyada yiyecek listesi yoksa boş "foods" dizisi döndür`
               },
-              {
-                inlineData: {
-                  mimeType: 'application/pdf',
-                  data: pdfBase64,
-                }
-              }
+              contentPart,
             ]
           }
         ]
@@ -130,7 +141,8 @@ Kurallar:
 
     const aiData = await aiResponse.json();
     const candidate = aiData.candidates?.[0];
-    const content = candidate?.content?.parts?.[0]?.text || '{}';
+    // Gemini 2.5 thinking model may emit thought parts before the answer
+    const content = candidate?.content?.parts?.find((p: any) => p.text && !p.thought)?.text || '{}';
     
     console.log('AI response:', content);
 
