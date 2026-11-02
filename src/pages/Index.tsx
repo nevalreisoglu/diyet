@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { CalorieProgress } from '@/components/CalorieProgress';
@@ -17,8 +17,12 @@ import { useCustomFoods } from '@/hooks/useCustomFoods';
 import { useWaterData } from '@/hooks/useWaterData';
 import { useBeverageData } from '@/hooks/useBeverageData';
 import { useExerciseData } from '@/hooks/useExerciseData';
-import { useAchievements, AchievementType } from '@/hooks/useAchievements';
-import { MealType } from '@/types/nutrition';
+import { useAchievements, AchievementType, achievementConfigs } from '@/hooks/useAchievements';
+import { useBodyMeasurements } from '@/hooks/useBodyMeasurements';
+import { useDailyCoach, CoachStats } from '@/hooks/useDailyCoach';
+import { DailyCoachCard } from '@/components/DailyCoachCard';
+import { computePlanAdherence } from '@/lib/planAdherence';
+import { MealType, mealTypeLabels } from '@/types/nutrition';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
@@ -53,17 +57,55 @@ const Index = () => {
   const { beverages } = useBeverageData(user?.id);
   const { duration: exerciseMinutes } = useExerciseData(user?.id);
   const { todayAchievements, checkAndAwardAchievements } = useAchievements(user?.id);
+  const { measurements } = useBodyMeasurements(user?.id);
+  const coach = useDailyCoach(user?.id);
   const { isPremium, createCheckout } = useSubscriptionContext();
 
   // Calculate totalCalories early for use in achievements
   const totalCalories = getTotalCalories();
   const earnedAchievementTypes = todayAchievements.map(a => a.achievement_type as AchievementType);
 
+  const adherence = useMemo(
+    () => computePlanAdherence(customFoods, getMealFoods),
+    [customFoods, getMealFoods]
+  );
+
+  const buildCoachStats = (): CoachStats => {
+    const latest = measurements[0];
+    const previous = measurements[1];
+    const delta = (a: number | null | undefined, b: number | null | undefined) =>
+      a != null && b != null ? Math.round((a - b) * 10) / 10 : null;
+    return {
+      localHour: new Date().getHours(),
+      calories: totalCalories,
+      targetCalories,
+      waterMl: waterIntake,
+      targetWaterMl: targetWater,
+      exerciseMinutes,
+      coffee: beverages.coffee,
+      tea: beverages.tea,
+      mealsLogged: meals.length,
+      adherence: adherence.planned > 0
+        ? { planned: adherence.planned, done: adherence.done, pct: adherence.pct, missedMeals: adherence.missedMeals.map((m) => mealTypeLabels[m]) }
+        : null,
+      measurement: latest
+        ? {
+            measuredAt: latest.measured_at,
+            weightKg: latest.weight_kg,
+            weightDelta: delta(latest.weight_kg, previous?.weight_kg),
+            bodyFatPct: latest.body_fat_pct,
+            bodyFatDelta: delta(latest.body_fat_pct, previous?.body_fat_pct),
+          }
+        : null,
+      achievements: earnedAchievementTypes
+        .map((t) => achievementConfigs.find((c) => c.type === t)?.label)
+        .filter((l): l is string => !!l),
+    };
+  };
+
   // Check achievements when relevant data changes
   const checkAchievements = useCallback(async () => {
     if (!user?.id || dataLoading) return;
-
-    const currentEarned = todayAchievements.map(a => a.achievement_type);
 
     const newAchievements = await checkAndAwardAchievements({
       exerciseMinutes,
@@ -73,22 +115,17 @@ const Index = () => {
       targetWater,
       coffeeCount: beverages.coffee,
       teaCount: beverages.tea,
+      adherence: adherence.planned > 0 ? { planned: adherence.planned, done: adherence.done } : null,
     });
 
     // Show toast for new achievements
     if (newAchievements && newAchievements.length > 0) {
-      const achievementLabels: Record<AchievementType, string> = {
-        exercise_goal: '🏆 Spor Yıldızı',
-        calorie_goal: '🎯 Kalori Ustası',
-        water_goal: '💧 Su Kahramanı',
-        low_caffeine: '☕ Kafein Kontrolcüsü',
-      };
-      
       newAchievements.forEach((type) => {
-        toast.success(`Tebrikler! ${achievementLabels[type]} rozetini kazandınız!`);
+        const config = achievementConfigs.find((c) => c.type === type);
+        toast.success(`Tebrikler! ${config ? `${config.icon} ${config.label}` : type} rozetini kazandınız!`);
       });
     }
-  }, [user?.id, dataLoading, exerciseMinutes, totalCalories, targetCalories, waterIntake, targetWater, beverages.coffee, beverages.tea, checkAndAwardAchievements, todayAchievements]);
+  }, [user?.id, dataLoading, exerciseMinutes, totalCalories, targetCalories, waterIntake, targetWater, beverages.coffee, beverages.tea, adherence.planned, adherence.done, checkAndAwardAchievements, todayAchievements]);
 
   useEffect(() => {
     checkAchievements();
@@ -137,6 +174,17 @@ const Index = () => {
           totalCalories={totalCalories}
           mealsLogged={meals.length}
           targetCalories={targetCalories}
+          adherence={adherence}
+        />
+
+        {/* AI Daily Coach */}
+        <DailyCoachCard
+          summary={coach.summary}
+          loading={coach.loading}
+          generating={coach.generating}
+          canRefresh={coach.canRefresh}
+          minutesSinceUpdate={coach.minutesSinceUpdate}
+          onGenerate={() => coach.generate(buildCoachStats())}
         />
 
         {/* Achievements Section */}
