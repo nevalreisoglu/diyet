@@ -24,15 +24,15 @@ const ClientDetail = () => {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isDietitian, loading: roleLoading } = useRole(user?.id);
+  const { role, isDietitian, loading: roleLoading } = useRole(user?.id);
   const [profile, setProfile] = useState<ClientProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [planDate, setPlanDate] = useState(todayStr());
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
-    if (!roleLoading && user && !isDietitian) navigate('/');
-  }, [user, authLoading, roleLoading, isDietitian, navigate]);
+    if (!roleLoading && user && role === 'client') navigate('/', { replace: true });
+  }, [user, authLoading, roleLoading, role, navigate]);
 
   useEffect(() => {
     if (!clientId || !user) return;
@@ -47,7 +47,7 @@ const ClientDetail = () => {
       });
   }, [clientId, user]);
 
-  if (authLoading || roleLoading || loading || !user || !clientId) {
+  if (authLoading || roleLoading || loading || !user || !clientId || !isDietitian) {
     return (
       <div className="min-h-screen bg-background gradient-hero flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

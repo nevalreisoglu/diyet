@@ -12,15 +12,15 @@ import { useToast } from '@/hooks/use-toast';
 const DietitianDashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isDietitian, loading: roleLoading } = useRole(user?.id);
+  const { role, isDietitian, loading: roleLoading } = useRole(user?.id);
   const { clients, inviteCode, loading, createInvite, removeClient } = useDietitianClients(user?.id);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
-    if (!roleLoading && user && !isDietitian) navigate('/');
-  }, [user, authLoading, roleLoading, isDietitian, navigate]);
+    if (!roleLoading && user && role === 'client') navigate('/', { replace: true });
+  }, [user, authLoading, roleLoading, role, navigate]);
 
   const copyCode = async () => {
     if (!inviteCode) return;
@@ -33,7 +33,7 @@ const DietitianDashboard = () => {
     }
   };
 
-  if (authLoading || roleLoading || !user) {
+  if (authLoading || roleLoading || !user || !isDietitian) {
     return (
       <div className="min-h-screen bg-background gradient-hero flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

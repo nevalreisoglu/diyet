@@ -21,6 +21,7 @@ export const useRole = (userId: string | undefined) => {
       return;
     }
     let cancelled = false;
+    setLoading(true);
     supabase
       .from('profiles')
       .select('role')
