@@ -80,6 +80,10 @@ const sections = [
         desc: 'Mikrofon simgesine basılı tutun ve "200 gram tavuk göğsü" gibi söyleyin. Uygulama sesi metne çevirip otomatik arama yapar.',
       },
       {
+        name: 'Hatırlatıcılar',
+        desc: 'Ayarlar → Hatırlatıcılar bölümünden öğün saati ve su molası bildirimlerini açın. Öğün bildirimlerinde o öğün için listenizdeki yiyecekler görünür. Telefon uygulamasında bildirimler arka planda gelir; tarayıcıda yalnızca uygulama açıkken çalışır.',
+      },
+      {
         name: 'Ölçüm Sonuçları Yükleme',
         desc: 'Ayarlar sayfasından InBody/Tanita çıktısı, akıllı tartı raporu veya diyetisyen ölçüm formunu (PDF, fotoğraf, Excel, Word) yükleyin. Kilo, yağ oranı, kas kütlesi, bel çevresi gibi değerler kaydedilir; Metabolik İkiz sayfasındaki "Ölçümler" sekmesinde geçmişinizi görür, hesaplamalar ve what-if senaryoları bu ölçümlere göre güncellenir.',
       },

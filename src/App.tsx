@@ -16,6 +16,7 @@ import { BottomNavBar } from "./components/BottomNavBar";
 import { TestModeBanner } from "./components/TestModeBanner";
 import { PAYMENTS_ENABLED } from "./config/features";
 import { IOSInstallBanner } from "./components/IOSInstallBanner";
+import { RemindersScheduler } from "./components/RemindersScheduler";
 import { useMobileCapacitor } from "./hooks/useMobileCapacitor";
 import { useAuth } from "./hooks/useAuth";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
@@ -34,6 +35,7 @@ function AppContent() {
     <>
       {PAYMENTS_ENABLED && <TestModeBanner />}
       <IOSInstallBanner />
+      {user && <RemindersScheduler userId={user.id} />}
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
