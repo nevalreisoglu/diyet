@@ -2,6 +2,7 @@ import { CalendarDays, Leaf, LogOut, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { PAYMENTS_ENABLED } from '@/config/features';
 
 export const Header = () => {
   const { user, signOut } = useAuth();
@@ -15,7 +16,7 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-50">
-      {/* Test modu bildirim şeridi */}
+      {PAYMENTS_ENABLED && (
       <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-700 dark:text-amber-400">
         <div className="container max-w-2xl mx-auto px-4 py-1.5 flex items-center gap-2 text-xs">
           <FlaskConical className="h-3.5 w-3.5 shrink-0" />
@@ -32,6 +33,7 @@ export const Header = () => {
           </a>
         </div>
       </div>
+      )}
 
       <div className="bg-card/80 backdrop-blur-md border-b border-border">
       <div className="container max-w-2xl mx-auto px-4 py-4">

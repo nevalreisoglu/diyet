@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { PAYMENTS_ENABLED } from '@/config/features';
 
 const LS_KEY = 'diyet_premium';
 
@@ -14,10 +15,10 @@ export function useSubscription(userId?: string) {
   // localStorage fast-path: premium kullanıcılar DB cevabını beklemeden içeriği görür
   const [isPremiumLocal]   = useState(() => localStorage.getItem(LS_KEY) === 'true');
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(!!userId);
+  const [loading, setLoading] = useState(PAYMENTS_ENABLED && !!userId);
 
   useEffect(() => {
-    if (!userId) {
+    if (!PAYMENTS_ENABLED || !userId) {
       setLoading(false);
       return;
     }
@@ -61,11 +62,11 @@ export function useSubscription(userId?: string) {
     (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date());
 
   // Yüklenirken localStorage'a güven, sonra DB'yi kullan
-  const isPremium = loading ? isPremiumLocal : isPremiumDB;
+  const isPremium = !PAYMENTS_ENABLED || (loading ? isPremiumLocal : isPremiumDB);
 
   // DB cevabı gelince localStorage'ı senkronize et (yanlış değer kalmasın)
   useEffect(() => {
-    if (!loading) {
+    if (PAYMENTS_ENABLED && !loading) {
       if (isPremiumDB) {
         localStorage.setItem(LS_KEY, 'true');
       } else {

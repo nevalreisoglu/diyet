@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, Save, Target, Droplets, Scale, Calendar, Ruler, User, Crown, Check, ExternalLink, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
+import { PAYMENTS_ENABLED } from '@/config/features';
 import { UpgradeDialog } from '@/components/UpgradeDialog';
 
 const Settings = () => {
@@ -147,7 +148,7 @@ const Settings = () => {
           <p className="text-muted-foreground">Profil ve hedef ayarlarınızı yönetin</p>
         </div>
 
-        {/* Subscription Card */}
+        {PAYMENTS_ENABLED && (<>
         <Card className={isPremium ? 'border-yellow-500/40 bg-yellow-500/5' : ''}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -217,6 +218,7 @@ const Settings = () => {
         </Card>
 
         <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} createCheckout={createCheckout} />
+        </>)}
 
         <Card>
           <CardHeader>
