@@ -93,7 +93,7 @@ serve(async (req) => {
 Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
 {
   "foods": [
-    {"name": "yiyecek adı", "calories": kalori_sayısı, "protein": protein_gram, "carbs": karbonhidrat_gram, "fat": yağ_gram, "mealType": "breakfast|lunch|dinner|snack1|snack2|snack3"}
+    {"name": "Türkçe yiyecek adı (porsiyon)", "calories": kalori_sayısı, "protein": protein_gram, "carbs": karbonhidrat_gram, "fat": yağ_gram, "mealType": "breakfast|lunch|dinner|snack1|snack2|snack3"}
   ],
   "mealSchedules": {
     "breakfast": "08:00",
@@ -106,6 +106,8 @@ Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
 }
 
 Kurallar:
+- Yiyecek adlarını MUTLAKA Türkçe yaz. Dosya başka bir dildeyse adları Türkçeye çevir (örn. "Boiled egg" -> "Haşlanmış yumurta", "Almonds" -> "Badem")
+- Porsiyon/miktar bilgisini adın sonunda parantez içinde Türkçe koru (örn. "Haşlanmış yumurta (1 adet)", "Badem (10 adet)", "Yulaf (2 yemek kaşığı)")
 - Her yiyecek için tahmini kalori ve besin değerlerini hesapla
 - Her yiyecek için hangi öğüne ait olduğunu mealType alanında belirt:
   - Kahvaltı besinleri için "breakfast"
