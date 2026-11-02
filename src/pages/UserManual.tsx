@@ -80,6 +80,10 @@ const sections = [
         desc: 'Mikrofon simgesine basılı tutun ve "200 gram tavuk göğsü" gibi söyleyin. Uygulama sesi metne çevirip otomatik arama yapar.',
       },
       {
+        name: 'Diyetisyen ile Çalışma',
+        desc: 'Diyetisyeniniz uygulamada "Diyetisyenim" hesabı açıp size bir davet kodu verir; kodu Ayarlar → Diyetisyenim bölümüne girin. Bundan sonra gün gün planınızı o hazırlar: ana sayfada "Diyetisyeninizin bugünkü planı" ve varsa günün notu görünür. Diyetisyen kayıtlarınızı, uyumunuzu ve ölçümlerinizi takip edebilir; bağlantıyı istediğiniz zaman kaldırabilirsiniz.',
+      },
+      {
         name: 'Barkod ile Ekleme',
         desc: 'Öğün ekleme penceresindeki barkod simgesine basın; paketin barkodunu kamerayla okutun ya da numarasını yazın. Ürün bilgisi Open Food Facts veri tabanından gelir; gram miktarını girince kalori ve makrolar otomatik hesaplanır.',
       },

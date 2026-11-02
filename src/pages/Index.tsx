@@ -16,7 +16,8 @@ import { WeightForecast } from '@/components/WeightForecast';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
 import { useMealSchedules } from '@/hooks/useMealSchedules';
-import { useCustomFoods } from '@/hooks/useCustomFoods';
+import { useTodayPlan } from '@/hooks/useTodayPlan';
+import { StickyNote } from 'lucide-react';
 import { useWaterData } from '@/hooks/useWaterData';
 import { useBeverageData } from '@/hooks/useBeverageData';
 import { useExerciseData } from '@/hooks/useExerciseData';
@@ -53,7 +54,7 @@ const Index = () => {
   } = useNutritionData(user?.id);
 
   const { getScheduleForMeal, updateSchedule, clearSchedule } = useMealSchedules(user?.id);
-  const { customFoods } = useCustomFoods(user?.id);
+  const { plannedFoods: customFoods, note: planNote, source: planSource } = useTodayPlan(user?.id);
 
   // Achievement tracking hooks
   const { waterIntake, targetWater } = useWaterData(user?.id);
@@ -241,7 +242,20 @@ const Index = () => {
 
         {/* Meals Section */}
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Öğünler</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-semibold text-foreground">Öğünler</h2>
+            {planSource === 'dietitian' && <span className="text-xs text-primary font-medium">Diyetisyeninizin bugünkü planı</span>}
+            {planSource === 'own' && <span className="text-xs text-muted-foreground">Yüklediğiniz liste</span>}
+          </div>
+          {planNote && (
+            <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2.5">
+              <StickyNote className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[11px] text-muted-foreground">Diyetisyeninizin notu</p>
+                <p className="text-sm text-foreground">{planNote}</p>
+              </div>
+            </div>
+          )}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             {mealTypes.map((mealType, index) => (
               <MealCard

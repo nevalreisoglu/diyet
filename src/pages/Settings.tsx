@@ -16,6 +16,8 @@ import { UpgradeDialog } from '@/components/UpgradeDialog';
 import { FoodListUploader } from '@/components/FoodListUploader';
 import { MeasurementUploader } from '@/components/MeasurementUploader';
 import { ReminderSettings } from '@/components/ReminderSettings';
+import { MyDietitianCard } from '@/components/MyDietitianCard';
+import { useRole } from '@/hooks/useRole';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -36,6 +38,7 @@ const Settings = () => {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const { isPremium, subscription, createCheckout, syncSubscription } = useSubscriptionContext();
+  const { isDietitian } = useRole(user?.id);
 
   // LemonSqueezy ödeme sonrası yönlendirme algılama
   useEffect(() => {
@@ -223,11 +226,17 @@ const Settings = () => {
         <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} createCheckout={createCheckout} />
         </>)}
 
-        <FoodListUploader userId={user.id} />
+        {!isDietitian && (
+          <>
+            <MyDietitianCard userId={user.id} />
 
-        <MeasurementUploader userId={user.id} />
+            <FoodListUploader userId={user.id} />
 
-        <ReminderSettings userId={user.id} />
+            <MeasurementUploader userId={user.id} />
+
+            <ReminderSettings userId={user.id} />
+          </>
+        )}
 
         <Card>
           <CardHeader>
