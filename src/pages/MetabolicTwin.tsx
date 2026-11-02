@@ -38,7 +38,7 @@ const MetabolicTwin = () => {
   return (
     <div className="min-h-screen bg-background gradient-hero">
       <Header />
-      <main className="container max-w-4xl mx-auto px-4 sm:px-6 py-8 pb-safe space-y-6">
+      <main className="container max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-safe space-y-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center shadow-glow">
             <Dna className="h-5 w-5 text-primary-foreground" />

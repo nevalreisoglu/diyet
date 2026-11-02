@@ -151,7 +151,7 @@
 
   /* Mobile bottom navigation safe area */
   .pb-safe {
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
   }
 
   /* Bottom nav bar safe area */

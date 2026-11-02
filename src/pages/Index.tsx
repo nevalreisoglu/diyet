@@ -128,7 +128,7 @@ const Index = () => {
     <div className="min-h-screen bg-background gradient-hero">
       <Header />
 
-      <main className="container max-w-4xl mx-auto px-4 sm:px-6 py-8 pb-safe space-y-8">
+      <main className="container max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-safe space-y-8">
         {/* Calorie Progress */}
         <CalorieProgress current={totalCalories} target={targetCalories} />
 
