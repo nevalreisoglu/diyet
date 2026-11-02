@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import DietitianDashboard from "./pages/DietitianDashboard";
 import ClientDetail from "./pages/ClientDetail";
 import { useRole } from "./hooks/useRole";
+import { Loader2 } from "lucide-react";
 import Auth from "./pages/Auth";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
@@ -29,8 +30,15 @@ const queryClient = new QueryClient();
 // Diyetisyen hesapları ana sayfa yerine danışan paneline gider
 function RoleHome() {
   const { user, loading } = useAuth();
-  const { isDietitian, loading: roleLoading } = useRole(user?.id);
-  if (user && !loading && !roleLoading && isDietitian) return <Navigate to="/dietitian" replace />;
+  const { role, loading: roleLoading } = useRole(user?.id);
+  if (user && (loading || roleLoading || role === null)) {
+    return (
+      <div className="min-h-screen bg-background gradient-hero flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (user && role === 'dietitian') return <Navigate to="/dietitian" replace />;
   return <Index />;
 }
 
