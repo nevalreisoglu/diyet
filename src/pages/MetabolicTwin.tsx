@@ -7,6 +7,7 @@ import { MetabolicProfileCard } from '@/components/metabolic/MetabolicProfileCar
 import { MetabolicScoreCard } from '@/components/metabolic/MetabolicScoreCard';
 import { WhatIfSimulator } from '@/components/metabolic/WhatIfSimulator';
 import { MetabolicInsights } from '@/components/metabolic/MetabolicInsights';
+import { MeasurementHistory } from '@/components/metabolic/MeasurementHistory';
 import { Loader2, Dna } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
@@ -61,12 +62,17 @@ const MetabolicTwin = () => {
           ]}
         >
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="profile">Profil</TabsTrigger>
+              <TabsTrigger value="measurements">Ölçümler</TabsTrigger>
               <TabsTrigger value="score">Skor</TabsTrigger>
               <TabsTrigger value="whatif">What-If</TabsTrigger>
               <TabsTrigger value="insights">Analiz</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="measurements">
+              <MeasurementHistory measurements={profile?.measurements ?? []} />
+            </TabsContent>
 
             <TabsContent value="profile">
               <MetabolicProfileCard profile={profile} />

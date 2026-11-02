@@ -14,6 +14,7 @@ import { useSubscriptionContext } from '@/contexts/SubscriptionContext';
 import { PAYMENTS_ENABLED } from '@/config/features';
 import { UpgradeDialog } from '@/components/UpgradeDialog';
 import { FoodListUploader } from '@/components/FoodListUploader';
+import { MeasurementUploader } from '@/components/MeasurementUploader';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -222,6 +223,8 @@ const Settings = () => {
         </>)}
 
         <FoodListUploader userId={user.id} />
+
+        <MeasurementUploader userId={user.id} />
 
         <Card>
           <CardHeader>
