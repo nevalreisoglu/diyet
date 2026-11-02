@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Home, History, Dna, Settings, BookOpen, X } from 'lucide-react';
+import { Home, History, Dna, Settings, BookOpen, X, Users } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const BUBBLE_KEY = 'diyet_guide_bubble_seen';
 
-const navItems = [
+const clientNavItems = [
   { path: '/', icon: Home, label: 'Ana Sayfa' },
   { path: '/history', icon: History, label: 'Geçmiş' },
   { path: '/metabolic-twin', icon: Dna, label: 'Metabolik' },
@@ -13,7 +13,18 @@ const navItems = [
   { path: '/settings', icon: Settings, label: 'Ayarlar' },
 ];
 
-export const BottomNavBar = () => {
+const dietitianNavItems = [
+  { path: '/dietitian', icon: Users, label: 'Danışanlar' },
+  { path: '/guide', icon: BookOpen, label: 'Rehber' },
+  { path: '/settings', icon: Settings, label: 'Ayarlar' },
+];
+
+interface BottomNavBarProps {
+  isDietitian?: boolean;
+}
+
+export const BottomNavBar = ({ isDietitian = false }: BottomNavBarProps) => {
+  const navItems = isDietitian ? dietitianNavItems : clientNavItems;
   const navigate = useNavigate();
   const location = useLocation();
   const [showBubble, setShowBubble] = useState(false);
@@ -72,7 +83,7 @@ export const BottomNavBar = () => {
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border bottom-nav-safe">
         <div className="flex items-center justify-around px-2 pt-2 pb-1">
           {navItems.map(({ path, icon: Icon, label }) => {
-            const isActive = location.pathname === path;
+            const isActive = path === '/dietitian' ? location.pathname.startsWith('/dietitian') : location.pathname === path;
             const isGuide = path === '/guide';
             return (
               <button

@@ -13,6 +13,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [role, setRole] = useState<'client' | 'dietitian'>('client');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -105,6 +106,7 @@ const Auth = () => {
             emailRedirectTo: redirectUrl,
             data: {
               display_name: displayName,
+              role,
             },
           },
         });
@@ -215,6 +217,30 @@ const Auth = () => {
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label className="text-foreground">Hesap türü</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: 'client', label: 'Danışanım', desc: 'Beslenmemi takip edeceğim' },
+                      { value: 'dietitian', label: 'Diyetisyenim', desc: 'Danışanlarımı yöneteceğim' },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setRole(opt.value)}
+                        className={`rounded-xl border p-3 text-left transition-colors ${
+                          role === opt.value ? 'border-primary bg-primary/10' : 'border-border bg-background hover:bg-secondary/50'
+                        }`}
+                      >
+                        <p className="text-sm font-medium text-foreground">{opt.label}</p>
+                        <p className="text-[11px] text-muted-foreground">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {!isLogin && (
                 <div className="space-y-2">
                   <Label htmlFor="displayName" className="text-foreground">

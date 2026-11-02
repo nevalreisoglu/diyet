@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useMealSchedules } from '@/hooks/useMealSchedules';
-import { useCustomFoods } from '@/hooks/useCustomFoods';
+import { useTodayPlan } from '@/hooks/useTodayPlan';
 import { useReminderPrefs, ReminderPrefs } from '@/lib/reminderPrefs';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
 import type { CustomFood } from '@/hooks/useCustomFoods';
@@ -95,9 +95,9 @@ interface Props {
 export const RemindersScheduler = ({ userId }: Props) => {
   const { prefs } = useReminderPrefs();
   const { schedules } = useMealSchedules(userId);
-  const { customFoods } = useCustomFoods(userId);
+  const { plannedFoods } = useTodayPlan(userId);
 
-  const reminders = useMemo(() => buildReminders(prefs, schedules, customFoods), [prefs, schedules, customFoods]);
+  const reminders = useMemo(() => buildReminders(prefs, schedules, plannedFoods), [prefs, schedules, plannedFoods]);
   const signature = JSON.stringify(reminders);
 
   useEffect(() => {

@@ -245,6 +245,18 @@ export type Database = {
         }
         Relationships: []
       }
+      dietitian_clients: {
+        Row: { id: string; dietitian_id: string; client_id: string; status: string; created_at: string }
+        Insert: { id?: string; dietitian_id: string; client_id: string; status?: string; created_at?: string }
+        Update: { id?: string; dietitian_id?: string; client_id?: string; status?: string; created_at?: string }
+        Relationships: []
+      }
+      dietitian_invites: {
+        Row: { dietitian_id: string; code: string; created_at: string }
+        Insert: { dietitian_id: string; code: string; created_at?: string }
+        Update: { dietitian_id?: string; code?: string; created_at?: string }
+        Relationships: []
+      }
       exercise_log: {
         Row: {
           created_at: string
@@ -364,12 +376,25 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_days: {
+        Row: { id: string; client_id: string; dietitian_id: string; plan_date: string; note: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; client_id: string; dietitian_id: string; plan_date: string; note?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; client_id?: string; dietitian_id?: string; plan_date?: string; note?: string | null; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      plan_items: {
+        Row: { id: string; plan_day_id: string; client_id: string; meal_type: string; name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null; sort_order: number; created_at: string }
+        Insert: { id?: string; plan_day_id: string; client_id: string; meal_type: string; name: string; calories?: number; protein?: number | null; carbs?: number | null; fat?: number | null; sort_order?: number; created_at?: string }
+        Update: { id?: string; plan_day_id?: string; client_id?: string; meal_type?: string; name?: string; calories?: number; protein?: number | null; carbs?: number | null; fat?: number | null; sort_order?: number; created_at?: string }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
           created_at: string
           current_weight_kg: number | null
           display_name: string | null
+          role: string
           gender: string | null
           height_cm: number | null
           id: string
@@ -385,6 +410,7 @@ export type Database = {
           created_at?: string
           current_weight_kg?: number | null
           display_name?: string | null
+          role?: string
           gender?: string | null
           height_cm?: number | null
           id?: string
@@ -400,6 +426,7 @@ export type Database = {
           created_at?: string
           current_weight_kg?: number | null
           display_name?: string | null
+          role?: string
           gender?: string | null
           height_cm?: number | null
           id?: string
@@ -441,7 +468,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_dietitian_invite: { Args: Record<string, never>; Returns: string }
+      link_dietitian: { Args: { p_code: string }; Returns: Json }
+      is_dietitian_of: { Args: { p_client: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
