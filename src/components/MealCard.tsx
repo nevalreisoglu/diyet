@@ -1,14 +1,17 @@
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Check, ListChecks } from 'lucide-react';
 import { MealType, mealTypeLabels, mealTypeIcons, FoodItem } from '@/types/nutrition';
 import { Button } from '@/components/ui/button';
 import { MealTimeEditor } from '@/components/MealTimeEditor';
+import type { CustomFood } from '@/hooks/useCustomFoods';
 
 interface MealCardProps {
   mealType: MealType;
   calories: number;
   foods: FoodItem[];
+  plannedFoods?: CustomFood[];
   scheduledTime?: string | null;
   onAddFood: () => void;
+  onAddPlannedFood?: (food: CustomFood) => void;
   onRemoveFood: (foodId: string) => void;
   onUpdateTime: (time: string) => void;
   onClearTime: () => void;
@@ -37,13 +40,18 @@ export const MealCard = ({
   mealType,
   calories,
   foods,
+  plannedFoods = [],
   scheduledTime,
   onAddFood,
+  onAddPlannedFood,
   onRemoveFood,
   onUpdateTime,
   onClearTime,
   delay = 0,
 }: MealCardProps) => {
+  const loggedNames = new Set(foods.map((f) => f.name.trim().toLocaleLowerCase('tr-TR')));
+  const isLogged = (name: string) => loggedNames.has(name.trim().toLocaleLowerCase('tr-TR'));
+
   return (
     <div
       className={`rounded-2xl border p-4 transition-all duration-300 hover:shadow-card animate-slide-up ${mealColorClasses[mealType]}`}
@@ -79,6 +87,36 @@ export const MealCard = ({
           <Plus className="h-5 w-5" />
         </Button>
       </div>
+
+      {plannedFoods.length > 0 && (
+        <div className="mb-3 pb-3 border-b border-border/50">
+          <div className="flex items-center gap-1.5 mb-2">
+            <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground font-medium">Listemde</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {plannedFoods.map((food) => {
+              const logged = isLogged(food.name);
+              return (
+                <button
+                  key={food.id}
+                  type="button"
+                  onClick={() => onAddPlannedFood?.(food)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors ${
+                    logged
+                      ? 'bg-primary/5 text-muted-foreground'
+                      : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                  }`}
+                  title={`${food.calories} kcal${logged ? ' · eklendi' : ' · eklemek için dokunun'}`}
+                >
+                  {logged ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                  {food.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Food list */}
       {foods.length > 0 && (

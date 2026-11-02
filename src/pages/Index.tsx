@@ -13,6 +13,7 @@ import { WeightForecast } from '@/components/WeightForecast';
 import { useAuth } from '@/hooks/useAuth';
 import { useNutritionData } from '@/hooks/useNutritionData';
 import { useMealSchedules } from '@/hooks/useMealSchedules';
+import { useCustomFoods } from '@/hooks/useCustomFoods';
 import { useWaterData } from '@/hooks/useWaterData';
 import { useBeverageData } from '@/hooks/useBeverageData';
 import { useExerciseData } from '@/hooks/useExerciseData';
@@ -43,7 +44,8 @@ const Index = () => {
     getMealFoods,
   } = useNutritionData(user?.id);
 
-  const { schedules, getScheduleForMeal, updateSchedule, clearSchedule, refetch: refetchSchedules } = useMealSchedules(user?.id);
+  const { getScheduleForMeal, updateSchedule, clearSchedule } = useMealSchedules(user?.id);
+  const { customFoods } = useCustomFoods(user?.id);
 
   // Achievement tracking hooks
   const { waterIntake, targetWater } = useWaterData(user?.id);
@@ -188,8 +190,10 @@ const Index = () => {
                 mealType={mealType}
                 calories={getMealCalories(mealType)}
                 foods={getMealFoods(mealType)}
-scheduledTime={getScheduleForMeal(mealType)}
+                plannedFoods={customFoods.filter((f) => f.meal_type === mealType)}
+                scheduledTime={getScheduleForMeal(mealType)}
                 onAddFood={() => handleOpenAddFood(mealType)}
+                onAddPlannedFood={(food) => handleAddFood(mealType, { name: food.name, calories: food.calories })}
                 onRemoveFood={(foodId) => removeFood(mealType, foodId)}
                 onUpdateTime={(time) => updateSchedule(mealType, time)}
                 onClearTime={() => clearSchedule(mealType)}

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { prepareFoodListPayload } from '@/lib/foodListFile';
 
-interface CustomFood {
+export interface CustomFood {
   id: string;
   name: string;
   calories: number;
@@ -41,49 +42,32 @@ export const useCustomFoods = (userId: string | undefined, onSchedulesUpdated?: 
     fetchCustomFoods();
   }, [fetchCustomFoods]);
 
-  const uploadPdf = useCallback(async (file: File) => {
+  const uploadFile = useCallback(async (file: File) => {
     if (!userId) return;
 
     setUploading(true);
     try {
-      // Read PDF as base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          // Extract base64 part from data URL
-          const base64Data = result.split(',')[1];
-          resolve(base64Data);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const payload = await prepareFoodListPayload(file);
 
-      const { data, error } = await supabase.functions.invoke('parse-food-pdf', {
-        body: { pdfBase64: base64 },
-      });
+      const { data, error } = await supabase.functions.invoke('parse-food-pdf', { body: payload });
 
       if (error) throw error;
 
-      if (data.success) {
-        const message = data.count > 0 
-          ? `${data.count} yiyecek listeden eklendi.`
-          : 'Öğün saatleri güncellendi.';
-        toast({
-          title: 'Başarılı',
-          description: message,
-        });
+      if (data?.success) {
+        const message = data.count > 0
+          ? `${data.count} yiyecek listeye eklendi.`
+          : 'Dosyada yiyecek bulunamadı.';
+        toast({ title: 'Liste yüklendi', description: message });
         fetchCustomFoods();
-        // Notify parent that schedules may have been updated
         onSchedulesUpdated?.();
       } else {
-        throw new Error(data.error || 'PDF işlenemedi');
+        throw new Error(data?.error || 'Dosya işlenemedi');
       }
     } catch (error) {
-      console.error('Error uploading PDF:', error);
+      console.error('Error uploading food list:', error);
       toast({
         title: 'Hata',
-        description: 'PDF yüklenirken bir hata oluştu.',
+        description: error instanceof Error ? error.message : 'Dosya yüklenirken bir hata oluştu.',
         variant: 'destructive',
       });
     } finally {
@@ -145,7 +129,7 @@ export const useCustomFoods = (userId: string | undefined, onSchedulesUpdated?: 
     customFoods,
     loading,
     uploading,
-    uploadPdf,
+    uploadFile,
     deleteCustomFood,
     deleteAllCustomFoods,
     refetch: fetchCustomFoods,

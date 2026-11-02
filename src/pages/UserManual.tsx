@@ -79,6 +79,10 @@ const sections = [
         name: 'Sesli Giriş',
         desc: 'Mikrofon simgesine basılı tutun ve "200 gram tavuk göğsü" gibi söyleyin. Uygulama sesi metne çevirip otomatik arama yapar.',
       },
+      {
+        name: 'Diyet Listesi Yükleme',
+        desc: 'Ayarlar sayfasından diyetisyeninizin verdiği listeyi PDF, fotoğraf, Excel, Word veya metin olarak yükleyin. Yiyecekler ana sayfada ilgili öğünün üstünde görünür; dokunarak tek seferde ekleyebilirsiniz. Listede öğün saatleri varsa onlar da alınır.',
+      },
     ],
   },
   {
