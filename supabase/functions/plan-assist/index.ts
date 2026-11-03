@@ -101,15 +101,16 @@ serve(async (req) => {
 Yanıtını SADECE şu JSON formatında ver:
 {"days": [{"label": "gün etiketi (Pazartesi, 1. Gün...) veya günlere ayrılmamışsa null", "everyDay": false, "items": [{"mealType": "breakfast|snack1|lunch|snack2|dinner|snack3", "name": "Türkçe yiyecek adı (porsiyon)", "calories": sayı, "protein": sayı, "carbs": sayı, "fat": sayı}]}]}
 
-Öğün eşlemesi: kahvaltı -> breakfast, 1. ara öğün/kuşluk -> snack1, öğle -> lunch, 2. ara öğün/ikindi -> snack2, akşam -> dinner, 3. ara öğün/gece -> snack3.
+Öğün eşlemesi (belgedeki başlığa göre, yiyeceğin türüne göre tahmin etme): kahvaltı/sabah -> breakfast; kuşluk/sabah ara/1. ara öğün -> snack1; öğle -> lunch; ikindi/öğleden sonra ara/2. ara öğün -> snack2; akşam -> dinner; gece/yatmadan önce/3. ara öğün -> snack3. Ana öğünleri ASLA snack olarak işaretleme; başlıkta sadece "Ara öğün" yazıyorsa sırasına göre snack1/2/3 ver.
 - Plan günlere ayrılmışsa her günü belgedeki sırayla ayrı bir "days" öğesi yap; ayrılmamışsa tek öğe ve label null
 - Tüm günler için ortak verilen bölümleri (örn. ara öğünler, "her gün") ayrı bir "days" öğesine koy, "everyDay": true yap; günlerin içine tekrar yazma
 - Alternatifleri ("veya", "seçenek") aynı güne ayrı yiyecek olarak ekle
 ${RULES}${hasText ? `\n\n--- PLAN ---\n${text.slice(0, 20000)}\n--- PLAN SONU ---` : ''}`;
       const parsed = await callGemini(GEMINI_API_KEY, prompt, hasFile ? { inlineData: { mimeType, data: fileBase64 } } : undefined);
       const allDays = (Array.isArray(parsed?.days) ? parsed.days : []).filter((d: any) => Array.isArray(d?.items) && d.items.length > 0);
-      const days = allDays.filter((d: any) => d.everyDay !== true);
-      const everyDay = allDays.filter((d: any) => d.everyDay === true);
+      const isEveryDay = (d: any) => d.everyDay === true || (typeof d.label === 'string' && /(her ?gün|tüm günler|bütün günler|ortak|genel)/i.test(d.label));
+      const days = allDays.filter((d: any) => !isEveryDay(d));
+      const everyDay = allDays.filter(isEveryDay);
       items = [
         ...days.flatMap((d: any, dayIndex: number) =>
           d.items.map(cleanItem).filter(Boolean).map((it: any) => ({
