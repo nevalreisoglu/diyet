@@ -115,13 +115,14 @@ Kurallar:
 - Yiyecek adlarını MUTLAKA Türkçe yaz. Dosya başka bir dildeyse adları Türkçeye çevir (örn. "Boiled egg" -> "Haşlanmış yumurta", "Almonds" -> "Badem")
 - Porsiyon/miktar bilgisini adın sonunda parantez içinde Türkçe koru (örn. "Haşlanmış yumurta (1 adet)", "Badem (10 adet)", "Yulaf (2 yemek kaşığı)")
 - Her yiyecek için tahmini kalori ve besin değerlerini hesapla
-- Her yiyecek için hangi öğüne ait olduğunu mealType alanında belirt:
-  - Kahvaltı besinleri için "breakfast"
-  - Öğle yemeği besinleri için "lunch"
-  - Akşam yemeği besinleri için "dinner"
-  - 1. ara öğün besinleri için "snack1"
-  - 2. ara öğün besinleri için "snack2"
-  - 3. ara öğün besinleri için "snack3"
+- Her yiyecek için hangi öğüne ait olduğunu mealType alanında belirt; öğünü belgedeki başlığa göre seç, yiyeceğin türüne göre tahmin etme:
+  - "Kahvaltı", "Sabah" -> "breakfast"
+  - "Kuşluk", "Sabah ara öğünü", "1. ara öğün", "Ara öğün 1" (kahvaltı ile öğle arası) -> "snack1"
+  - "Öğle", "Öğle yemeği" -> "lunch"
+  - "İkindi", "Öğleden sonra ara", "2. ara öğün", "Ara öğün 2" (öğle ile akşam arası) -> "snack2"
+  - "Akşam", "Akşam yemeği" -> "dinner"
+  - "Gece", "Yatmadan önce", "3. ara öğün", "Ara öğün 3" (akşamdan sonra) -> "snack3"
+  - Ana öğünleri (kahvaltı/öğle/akşam) ASLA snack olarak işaretleme; başlıkta sadece "Ara öğün" yazıyorsa belgedeki sırasına göre snack1/snack2/snack3 ver
 - Öğün saatleri metinde varsa onları kullan, yoksa varsayılan değerleri kullan
 - Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et
 - Liste günlere ayrılmışsa (Pazartesi/Salı..., 1. Gün/2. Gün..., Gün 1...) her günü ayrı bir "days" öğesi yap ve etiketi dosyadaki gibi yaz; günler belgedeki sırayla olsun
@@ -179,8 +180,9 @@ Kurallar:
         foods = parsed;
       } else if (Array.isArray(parsed.days)) {
         const allDays = parsed.days.filter((d: any) => Array.isArray(d?.foods) && d.foods.length > 0);
-        const everyDay = allDays.filter((d: any) => d.everyDay === true);
-        const days = allDays.filter((d: any) => d.everyDay !== true);
+        const isEveryDay = (d: any) => d.everyDay === true || (typeof d.label === 'string' && /(her ?gün|tüm günler|bütün günler|ortak|genel)/i.test(d.label));
+        const everyDay = allDays.filter(isEveryDay);
+        const days = allDays.filter((d: any) => !isEveryDay(d));
         const hasDayLabels = days.length > 1 || (days.length === 1 && typeof days[0].label === 'string' && days[0].label.trim());
         foods = [
           ...days.flatMap((d: any, index: number) =>

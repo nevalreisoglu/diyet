@@ -8,6 +8,11 @@ export const EVERY_DAY_INDEX = -1;
 const normalize = (s: string) => s.trim().toLocaleLowerCase('tr-TR');
 const foodKey = (f: CustomFood) => `${f.meal_type ?? ''}|${normalize(f.name)}`;
 
+// "Her gün", "Tüm günler", "Ortak" gibi etiketler günden bağımsız bölümdür
+const EVERY_DAY_LABEL = /(her ?gün|hergün|tüm günler|bütün günler|ortak|genel|her gün için)/i;
+export const isEveryDayLabel = (label: string | null | undefined) => !!label && EVERY_DAY_LABEL.test(normalize(label));
+const isEveryDay = (f: CustomFood) => f.day_index === EVERY_DAY_INDEX || isEveryDayLabel(f.day_label);
+
 // Etiketteki tüm gün adlarını tam kelime olarak eşler ("Pazartesi Salı Perşembe" -> {1, 2, 4})
 const weekdaysOf = (label: string): Set<number> => {
   const tokens = normalize(label).split(/[^a-zçğıöşü]+/i).filter(Boolean);
@@ -28,7 +33,7 @@ export interface DayGroup {
 export const groupByDay = (foods: CustomFood[]): DayGroup[] => {
   const map = new Map<number, DayGroup>();
   for (const f of foods) {
-    if (f.day_index === null || f.day_index === undefined || f.day_index === EVERY_DAY_INDEX) continue;
+    if (f.day_index === null || f.day_index === undefined || isEveryDay(f)) continue;
     const g = map.get(f.day_index) ?? { index: f.day_index, label: f.day_label ?? `${f.day_index + 1}. Gün`, foods: [] };
     g.foods.push(f);
     map.set(f.day_index, g);
@@ -48,7 +53,7 @@ export const resolveDayFoods = (allFoods: CustomFood[], groups: DayGroup[], grou
   };
 
   for (const f of allFoods) {
-    if (f.day_index === EVERY_DAY_INDEX) add(f);
+    if (isEveryDay(f)) add(f);
   }
 
   const mealsPresent = new Set(result.map((f) => f.meal_type));
