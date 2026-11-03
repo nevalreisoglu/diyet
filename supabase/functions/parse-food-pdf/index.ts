@@ -95,6 +95,7 @@ Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
   "days": [
     {
       "label": "gün etiketi (örn. Pazartesi, 1. Gün) veya liste günlere ayrılmamışsa null",
+      "everyDay": false,
       "foods": [
         {"name": "Türkçe yiyecek adı (porsiyon)", "calories": kalori_sayısı, "protein": protein_gram, "carbs": karbonhidrat_gram, "fat": yağ_gram, "mealType": "breakfast|lunch|dinner|snack1|snack2|snack3"}
       ]
@@ -125,6 +126,7 @@ Kurallar:
 - Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et
 - Liste günlere ayrılmışsa (Pazartesi/Salı..., 1. Gün/2. Gün..., Gün 1...) her günü ayrı bir "days" öğesi yap ve etiketi dosyadaki gibi yaz; günler belgedeki sırayla olsun
 - Liste günlere ayrılmamışsa tek bir "days" öğesi döndür ve "label" null olsun
+- Günlere ayrılmış listede bazı bölümler tüm günler için ortak verilmişse (örn. "Ara öğünler", "Her gün", "Tüm günlerde") bunları ayrı bir "days" öğesine koy, "everyDay": true ve "label": "Her gün" yap; bu öğeleri günlerin içine tekrar yazma
 - "Seçenek" / "veya" ile verilen alternatifleri aynı güne ayrı yiyecek olarak ekle
 - Dosyada yiyecek listesi yoksa "days" boş dizi olsun`
               },
@@ -176,15 +178,26 @@ Kurallar:
       if (Array.isArray(parsed)) {
         foods = parsed;
       } else if (Array.isArray(parsed.days)) {
-        const days = parsed.days.filter((d: any) => Array.isArray(d?.foods) && d.foods.length > 0);
+        const allDays = parsed.days.filter((d: any) => Array.isArray(d?.foods) && d.foods.length > 0);
+        const everyDay = allDays.filter((d: any) => d.everyDay === true);
+        const days = allDays.filter((d: any) => d.everyDay !== true);
         const hasDayLabels = days.length > 1 || (days.length === 1 && typeof days[0].label === 'string' && days[0].label.trim());
-        foods = days.flatMap((d: any, index: number) =>
-          d.foods.map((f: any) => ({
-            ...f,
-            dayLabel: hasDayLabels ? (typeof d.label === 'string' && d.label.trim() ? d.label.trim() : `${index + 1}. Gün`) : null,
-            dayIndex: hasDayLabels ? index : null,
-          }))
-        );
+        foods = [
+          ...days.flatMap((d: any, index: number) =>
+            d.foods.map((f: any) => ({
+              ...f,
+              dayLabel: hasDayLabels ? (typeof d.label === 'string' && d.label.trim() ? d.label.trim() : `${index + 1}. Gün`) : null,
+              dayIndex: hasDayLabels ? index : null,
+            }))
+          ),
+          ...everyDay.flatMap((d: any) =>
+            d.foods.map((f: any) => ({
+              ...f,
+              dayLabel: hasDayLabels ? 'Her gün' : null,
+              dayIndex: hasDayLabels ? -1 : null,
+            }))
+          ),
+        ];
         mealSchedules = parsed.mealSchedules || {};
       } else {
         foods = parsed.foods || [];
@@ -266,7 +279,7 @@ Kurallar:
         foods,
         mealSchedules,
         count: foods.length,
-        dayCount: new Set(foods.map((f: any) => f.dayIndex).filter((d: any) => typeof d === 'number')).size,
+        dayCount: new Set(foods.map((f: any) => f.dayIndex).filter((d: any) => typeof d === 'number' && d >= 0)).size,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

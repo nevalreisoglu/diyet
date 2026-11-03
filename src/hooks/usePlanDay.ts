@@ -265,12 +265,15 @@ export const usePlanDay = (dietitianId: string | undefined, clientId: string | u
       toast({ title: 'Yiyecek bulunamadı', description: 'Dosyada öğün/yiyecek tanınamadı.', variant: 'destructive' });
       return;
     }
-    const dayIndexes = [...new Set(valid.map((r) => r.dayIndex ?? 0))].sort((a, b) => a - b);
+    // dayIndex -1: her gün geçerli (ortak bölüm), tüm günlere eklenir
+    const everyDayItems = valid.filter((r) => r.dayIndex === -1);
+    const dayIndexes = [...new Set(valid.filter((r) => r.dayIndex !== -1).map((r) => r.dayIndex ?? 0))].sort((a, b) => a - b);
+    if (dayIndexes.length === 0) dayIndexes.push(0);
     for (const [offset, dayIndex] of dayIndexes.entries()) {
       const target = addDays(date, offset);
       const d = await ensureDay(target);
       await supabase.from('plan_items').delete().eq('plan_day_id', d.id);
-      const dayItems = valid.filter((r) => (r.dayIndex ?? 0) === dayIndex);
+      const dayItems = [...valid.filter((r) => r.dayIndex !== -1 && (r.dayIndex ?? 0) === dayIndex), ...everyDayItems];
       const { error } = await supabase.from('plan_items').insert(
         dayItems.map((r, i) => ({
           plan_day_id: d.id,

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useCustomFoods, CustomFood } from '@/hooks/useCustomFoods';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
 import { UPLOAD_ACCEPT } from '@/lib/filePayload';
-import { selectTodayGroup } from '@/lib/dayPlan';
+import { selectTodayGroup, resolveDayFoods } from '@/lib/dayPlan';
 
 const mealOrder: MealType[] = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner', 'snack3'];
 
@@ -32,7 +32,7 @@ export const FoodListUploader = ({ userId }: FoodListUploaderProps) => {
   const activeGroup = hasDays
     ? today.groups.find((g) => g.index === selectedDay) ?? today.groups.find((g) => g.label === today.label) ?? today.groups[0]
     : null;
-  const visibleFoods = activeGroup ? activeGroup.foods : customFoods;
+  const visibleFoods = activeGroup ? resolveDayFoods(customFoods, today.groups, activeGroup) : customFoods;
 
   return (
     <Card>
@@ -43,7 +43,7 @@ export const FoodListUploader = ({ userId }: FoodListUploaderProps) => {
         </CardTitle>
         <CardDescription>
           Diyetisyeninizin verdiği listeyi yükleyin; yiyecekler ana sayfada ilgili öğünün üstünde tek dokunuşla eklenebilir hale gelir.
-          Liste günlere ayrılmışsa her gün ayrı tutulur ve ana sayfada o günün listesi görünür.
+          Liste günlere ayrılmışsa her gün ayrı tutulur ve ana sayfada o günün listesi görünür; her gün için ortak verilen bölümler (örn. ara öğünler) tüm günlere eklenir.
           PDF, fotoğraf, Excel, Word veya metin dosyası yükleyebilirsiniz. Yeni bir dosya mevcut listenin yerine geçer.
         </CardDescription>
       </CardHeader>

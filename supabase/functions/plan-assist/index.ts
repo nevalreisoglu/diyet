@@ -99,21 +99,29 @@ serve(async (req) => {
       const prompt = `Sen bir diyetisyen asistanısın. ${source} beslenme planını gün gün ve öğün öğün çıkar.
 
 Yanıtını SADECE şu JSON formatında ver:
-{"days": [{"label": "gün etiketi (Pazartesi, 1. Gün...) veya günlere ayrılmamışsa null", "items": [{"mealType": "breakfast|snack1|lunch|snack2|dinner|snack3", "name": "Türkçe yiyecek adı (porsiyon)", "calories": sayı, "protein": sayı, "carbs": sayı, "fat": sayı}]}]}
+{"days": [{"label": "gün etiketi (Pazartesi, 1. Gün...) veya günlere ayrılmamışsa null", "everyDay": false, "items": [{"mealType": "breakfast|snack1|lunch|snack2|dinner|snack3", "name": "Türkçe yiyecek adı (porsiyon)", "calories": sayı, "protein": sayı, "carbs": sayı, "fat": sayı}]}]}
 
 Öğün eşlemesi: kahvaltı -> breakfast, 1. ara öğün/kuşluk -> snack1, öğle -> lunch, 2. ara öğün/ikindi -> snack2, akşam -> dinner, 3. ara öğün/gece -> snack3.
 - Plan günlere ayrılmışsa her günü belgedeki sırayla ayrı bir "days" öğesi yap; ayrılmamışsa tek öğe ve label null
+- Tüm günler için ortak verilen bölümleri (örn. ara öğünler, "her gün") ayrı bir "days" öğesine koy, "everyDay": true yap; günlerin içine tekrar yazma
 - Alternatifleri ("veya", "seçenek") aynı güne ayrı yiyecek olarak ekle
 ${RULES}${hasText ? `\n\n--- PLAN ---\n${text.slice(0, 20000)}\n--- PLAN SONU ---` : ''}`;
       const parsed = await callGemini(GEMINI_API_KEY, prompt, hasFile ? { inlineData: { mimeType, data: fileBase64 } } : undefined);
-      const days = (Array.isArray(parsed?.days) ? parsed.days : []).filter((d: any) => Array.isArray(d?.items) && d.items.length > 0);
-      items = days.flatMap((d: any, dayIndex: number) =>
-        d.items.map(cleanItem).filter(Boolean).map((it: any) => ({
-          ...it,
-          dayIndex,
-          dayLabel: typeof d.label === 'string' && d.label.trim() ? d.label.trim() : `${dayIndex + 1}. Gün`,
-        }))
-      ).slice(0, 300);
+      const allDays = (Array.isArray(parsed?.days) ? parsed.days : []).filter((d: any) => Array.isArray(d?.items) && d.items.length > 0);
+      const days = allDays.filter((d: any) => d.everyDay !== true);
+      const everyDay = allDays.filter((d: any) => d.everyDay === true);
+      items = [
+        ...days.flatMap((d: any, dayIndex: number) =>
+          d.items.map(cleanItem).filter(Boolean).map((it: any) => ({
+            ...it,
+            dayIndex,
+            dayLabel: typeof d.label === 'string' && d.label.trim() ? d.label.trim() : `${dayIndex + 1}. Gün`,
+          }))
+        ),
+        ...everyDay.flatMap((d: any) =>
+          d.items.map(cleanItem).filter(Boolean).map((it: any) => ({ ...it, dayIndex: -1, dayLabel: 'Her gün' }))
+        ),
+      ].slice(0, 300);
     } else if (mode === 'parse') {
       const text = typeof body.text === 'string' ? body.text.trim() : '';
       if (!text) return json({ error: 'Metin gerekli' }, 400);
