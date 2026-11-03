@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useCustomFoods, CustomFood } from '@/hooks/useCustomFoods';
 import { fetchPlanForDate, PlanDay } from '@/hooks/usePlanDay';
 import { todayStr } from '@/lib/dates';
+import { selectTodayGroup } from '@/lib/dayPlan';
 
 export type PlanSource = 'dietitian' | 'own' | 'none';
 
@@ -39,9 +40,11 @@ export const useTodayPlan = (userId: string | undefined) => {
 
   const hasDietitianPlan = planDay !== null && planItems.length > 0;
   const source: PlanSource = hasDietitianPlan ? 'dietitian' : customFoods.length > 0 ? 'own' : 'none';
+  const ownToday = selectTodayGroup(customFoods);
 
   return {
-    plannedFoods: hasDietitianPlan ? planItems : customFoods,
+    plannedFoods: hasDietitianPlan ? planItems : ownToday.foods,
+    dayLabel: hasDietitianPlan ? null : ownToday.label,
     note: planDay?.note ?? null,
     source,
     loading: ownLoading || planLoading,

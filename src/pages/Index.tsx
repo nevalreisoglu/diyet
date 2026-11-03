@@ -54,7 +54,7 @@ const Index = () => {
   } = useNutritionData(user?.id);
 
   const { getScheduleForMeal, updateSchedule, clearSchedule } = useMealSchedules(user?.id);
-  const { plannedFoods: customFoods, note: planNote, source: planSource } = useTodayPlan(user?.id);
+  const { plannedFoods: customFoods, note: planNote, source: planSource, dayLabel: planDayLabel } = useTodayPlan(user?.id);
 
   // Achievement tracking hooks
   const { waterIntake, targetWater } = useWaterData(user?.id);
@@ -245,7 +245,9 @@ const Index = () => {
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-semibold text-foreground">Öğünler</h2>
             {planSource === 'dietitian' && <span className="text-xs text-primary font-medium">Diyetisyeninizin bugünkü planı</span>}
-            {planSource === 'own' && <span className="text-xs text-muted-foreground">Yüklediğiniz liste</span>}
+            {planSource === 'own' && (
+              <span className="text-xs text-muted-foreground">Yüklediğiniz liste{planDayLabel ? ` · ${planDayLabel}` : ''}</span>
+            )}
           </div>
           {planNote && (
             <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2.5">

@@ -39,13 +39,13 @@ const RULES = `Kurallar:
 - Belirtilen porsiyona göre toplam kalori (kcal) ve protein/karbonhidrat/yağ gramlarını tahmin et; porsiyon yoksa standart bir porsiyon varsay
 - Sayıları sayı olarak ver, birim yazma; virgül yerine nokta kullan`;
 
-async function callGemini(apiKey: string, prompt: string): Promise<any> {
+async function callGemini(apiKey: string, prompt: string, extraPart?: Record<string, unknown>): Promise<any> {
   const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
     method: 'POST',
     headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       generationConfig: { responseMimeType: 'application/json' },
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: [{ parts: extraPart ? [{ text: prompt }, extraPart] : [{ text: prompt }] }],
     }),
   });
   if (!res.ok) {
@@ -88,7 +88,33 @@ serve(async (req) => {
 
     let items: ReturnType<typeof cleanItem>[] = [];
 
-    if (mode === 'parse') {
+    if (mode === 'file') {
+      // Dosya/metinden gün gün plan çıkarır; satırlar dayIndex ile işaretlenir
+      const { fileBase64, mimeType, text } = body;
+      const hasFile = typeof fileBase64 === 'string' && fileBase64.length > 0 && typeof mimeType === 'string';
+      const hasText = typeof text === 'string' && text.trim().length > 0;
+      if (!hasFile && !hasText) return json({ error: 'Dosya içeriği gerekli' }, 400);
+      if (hasFile && !/^(application\/pdf|image\/(jpeg|png|webp|gif))$/.test(mimeType)) return json({ error: 'Desteklenmeyen dosya türü' }, 400);
+      const source = hasFile ? (mimeType === 'application/pdf' ? 'Bu PDF dosyasındaki' : 'Bu görseldeki') : 'Aşağıdaki metindeki';
+      const prompt = `Sen bir diyetisyen asistanısın. ${source} beslenme planını gün gün ve öğün öğün çıkar.
+
+Yanıtını SADECE şu JSON formatında ver:
+{"days": [{"label": "gün etiketi (Pazartesi, 1. Gün...) veya günlere ayrılmamışsa null", "items": [{"mealType": "breakfast|snack1|lunch|snack2|dinner|snack3", "name": "Türkçe yiyecek adı (porsiyon)", "calories": sayı, "protein": sayı, "carbs": sayı, "fat": sayı}]}]}
+
+Öğün eşlemesi: kahvaltı -> breakfast, 1. ara öğün/kuşluk -> snack1, öğle -> lunch, 2. ara öğün/ikindi -> snack2, akşam -> dinner, 3. ara öğün/gece -> snack3.
+- Plan günlere ayrılmışsa her günü belgedeki sırayla ayrı bir "days" öğesi yap; ayrılmamışsa tek öğe ve label null
+- Alternatifleri ("veya", "seçenek") aynı güne ayrı yiyecek olarak ekle
+${RULES}${hasText ? `\n\n--- PLAN ---\n${text.slice(0, 20000)}\n--- PLAN SONU ---` : ''}`;
+      const parsed = await callGemini(GEMINI_API_KEY, prompt, hasFile ? { inlineData: { mimeType, data: fileBase64 } } : undefined);
+      const days = (Array.isArray(parsed?.days) ? parsed.days : []).filter((d: any) => Array.isArray(d?.items) && d.items.length > 0);
+      items = days.flatMap((d: any, dayIndex: number) =>
+        d.items.map(cleanItem).filter(Boolean).map((it: any) => ({
+          ...it,
+          dayIndex,
+          dayLabel: typeof d.label === 'string' && d.label.trim() ? d.label.trim() : `${dayIndex + 1}. Gün`,
+        }))
+      ).slice(0, 300);
+    } else if (mode === 'parse') {
       const text = typeof body.text === 'string' ? body.text.trim() : '';
       if (!text) return json({ error: 'Metin gerekli' }, 400);
       const prompt = `Sen bir diyetisyen asistanısın. Aşağıdaki günlük beslenme planı metnini öğünlere ayır ve her yiyeceği listele.

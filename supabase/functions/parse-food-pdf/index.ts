@@ -92,8 +92,13 @@ serve(async (req) => {
 
 Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
 {
-  "foods": [
-    {"name": "Türkçe yiyecek adı (porsiyon)", "calories": kalori_sayısı, "protein": protein_gram, "carbs": karbonhidrat_gram, "fat": yağ_gram, "mealType": "breakfast|lunch|dinner|snack1|snack2|snack3"}
+  "days": [
+    {
+      "label": "gün etiketi (örn. Pazartesi, 1. Gün) veya liste günlere ayrılmamışsa null",
+      "foods": [
+        {"name": "Türkçe yiyecek adı (porsiyon)", "calories": kalori_sayısı, "protein": protein_gram, "carbs": karbonhidrat_gram, "fat": yağ_gram, "mealType": "breakfast|lunch|dinner|snack1|snack2|snack3"}
+      ]
+    }
   ],
   "mealSchedules": {
     "breakfast": "08:00",
@@ -118,7 +123,10 @@ Kurallar:
   - 3. ara öğün besinleri için "snack3"
 - Öğün saatleri metinde varsa onları kullan, yoksa varsayılan değerleri kullan
 - Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et
-- Dosyada yiyecek listesi yoksa boş "foods" dizisi döndür`
+- Liste günlere ayrılmışsa (Pazartesi/Salı..., 1. Gün/2. Gün..., Gün 1...) her günü ayrı bir "days" öğesi yap ve etiketi dosyadaki gibi yaz; günler belgedeki sırayla olsun
+- Liste günlere ayrılmamışsa tek bir "days" öğesi döndür ve "label" null olsun
+- "Seçenek" / "veya" ile verilen alternatifleri aynı güne ayrı yiyecek olarak ekle
+- Dosyada yiyecek listesi yoksa "days" boş dizi olsun`
               },
               contentPart,
             ]
@@ -165,9 +173,19 @@ Kurallar:
       }
       const parsed = JSON.parse(cleanedContent.trim());
       
-      // Handle both old array format and new object format
       if (Array.isArray(parsed)) {
         foods = parsed;
+      } else if (Array.isArray(parsed.days)) {
+        const days = parsed.days.filter((d: any) => Array.isArray(d?.foods) && d.foods.length > 0);
+        const hasDayLabels = days.length > 1 || (days.length === 1 && typeof days[0].label === 'string' && days[0].label.trim());
+        foods = days.flatMap((d: any, index: number) =>
+          d.foods.map((f: any) => ({
+            ...f,
+            dayLabel: hasDayLabels ? (typeof d.label === 'string' && d.label.trim() ? d.label.trim() : `${index + 1}. Gün`) : null,
+            dayIndex: hasDayLabels ? index : null,
+          }))
+        );
+        mealSchedules = parsed.mealSchedules || {};
       } else {
         foods = parsed.foods || [];
         mealSchedules = parsed.mealSchedules || {};
@@ -208,6 +226,8 @@ Kurallar:
         carbs: food.carbs || null,
         fat: food.fat || null,
         meal_type: food.mealType || null,
+        day_label: food.dayLabel ?? null,
+        day_index: typeof food.dayIndex === 'number' ? food.dayIndex : null,
       }));
 
       const { error: insertError } = await supabaseAdmin
@@ -241,7 +261,13 @@ Kurallar:
     console.log(`Successfully parsed and saved ${foods.length} foods and ${Object.keys(mealSchedules).length} meal schedules for user ${userId}`);
 
     return new Response(
-      JSON.stringify({ success: true, foods, mealSchedules, count: foods.length }),
+      JSON.stringify({
+        success: true,
+        foods,
+        mealSchedules,
+        count: foods.length,
+        dayCount: new Set(foods.map((f: any) => f.dayIndex).filter((d: any) => typeof d === 'number')).size,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
