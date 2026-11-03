@@ -214,6 +214,8 @@ export type Database = {
           calories: number
           carbs: number | null
           created_at: string
+          day_index: number | null
+          day_label: string | null
           fat: number | null
           id: string
           meal_type: string | null
@@ -225,6 +227,8 @@ export type Database = {
           calories?: number
           carbs?: number | null
           created_at?: string
+          day_index?: number | null
+          day_label?: string | null
           fat?: number | null
           id?: string
           meal_type?: string | null
@@ -236,6 +240,8 @@ export type Database = {
           calories?: number
           carbs?: number | null
           created_at?: string
+          day_index?: number | null
+          day_label?: string | null
           fat?: number | null
           id?: string
           meal_type?: string | null

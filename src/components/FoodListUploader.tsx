@@ -1,10 +1,11 @@
-import { useRef } from 'react';
-import { FileUp, Loader2, Trash2, X, ListChecks } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { FileUp, Loader2, Trash2, X, ListChecks, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCustomFoods } from '@/hooks/useCustomFoods';
+import { useCustomFoods, CustomFood } from '@/hooks/useCustomFoods';
 import { MealType, mealTypeLabels, mealTypeIcons } from '@/types/nutrition';
 import { UPLOAD_ACCEPT } from '@/lib/filePayload';
+import { selectTodayGroup } from '@/lib/dayPlan';
 
 const mealOrder: MealType[] = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner', 'snack3'];
 
@@ -15,17 +16,23 @@ interface FoodListUploaderProps {
 export const FoodListUploader = ({ userId }: FoodListUploaderProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { customFoods, loading, uploading, uploadFile, deleteCustomFood, deleteAllCustomFoods } = useCustomFoods(userId);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (file) await uploadFile(file);
+    if (file) {
+      await uploadFile(file);
+      setSelectedDay(null);
+    }
   };
 
-  const grouped = mealOrder
-    .map((mealType) => ({ mealType, foods: customFoods.filter((f) => f.meal_type === mealType) }))
-    .filter((g) => g.foods.length > 0);
-  const unassigned = customFoods.filter((f) => !f.meal_type || !(f.meal_type in mealTypeLabels));
+  const today = selectTodayGroup(customFoods);
+  const hasDays = today.groups.length > 0;
+  const activeGroup = hasDays
+    ? today.groups.find((g) => g.index === selectedDay) ?? today.groups.find((g) => g.label === today.label) ?? today.groups[0]
+    : null;
+  const visibleFoods = activeGroup ? activeGroup.foods : customFoods;
 
   return (
     <Card>
@@ -36,17 +43,12 @@ export const FoodListUploader = ({ userId }: FoodListUploaderProps) => {
         </CardTitle>
         <CardDescription>
           Diyetisyeninizin verdiği listeyi yükleyin; yiyecekler ana sayfada ilgili öğünün üstünde tek dokunuşla eklenebilir hale gelir.
+          Liste günlere ayrılmışsa her gün ayrı tutulur ve ana sayfada o günün listesi görünür.
           PDF, fotoğraf, Excel, Word veya metin dosyası yükleyebilirsiniz. Yeni bir dosya mevcut listenin yerine geçer.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <input
-          ref={inputRef}
-          type="file"
-          accept={UPLOAD_ACCEPT}
-          className="hidden"
-          onChange={handleFileChange}
-        />
+        <input ref={inputRef} type="file" accept={UPLOAD_ACCEPT} className="hidden" onChange={handleFileChange} />
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => inputRef.current?.click()} disabled={uploading || !userId} className="gap-2">
             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
@@ -68,20 +70,32 @@ export const FoodListUploader = ({ userId }: FoodListUploaderProps) => {
           <p className="text-sm text-muted-foreground">Henüz liste yüklenmedi.</p>
         ) : (
           <div className="space-y-4">
-            {grouped.map(({ mealType, foods }) => (
-              <div key={mealType}>
-                <p className="text-sm font-medium text-foreground mb-2">
-                  {mealTypeIcons[mealType]} {mealTypeLabels[mealType]}
+            {hasDays && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {today.groups.length} günlük liste · bugün: <span className="font-medium text-foreground">{today.label}</span>
                 </p>
-                <FoodChips foods={foods} onDelete={deleteCustomFood} />
-              </div>
-            ))}
-            {unassigned.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-foreground mb-2">Öğünü belirsiz</p>
-                <FoodChips foods={unassigned} onDelete={deleteCustomFood} />
+                <div className="flex flex-wrap gap-1.5">
+                  {today.groups.map((g) => {
+                    const active = activeGroup?.index === g.index;
+                    return (
+                      <button
+                        key={g.index}
+                        type="button"
+                        onClick={() => setSelectedDay(g.index)}
+                        className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
+                          active ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                        }`}
+                      >
+                        {g.label}{g.label === today.label ? ' ·' : ''}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
+            <MealGroups foods={visibleFoods} onDelete={deleteCustomFood} />
           </div>
         )}
       </CardContent>
@@ -89,19 +103,35 @@ export const FoodListUploader = ({ userId }: FoodListUploaderProps) => {
   );
 };
 
-const FoodChips = ({
-  foods,
-  onDelete,
-}: {
-  foods: { id: string; name: string; calories: number }[];
-  onDelete: (id: string) => void;
-}) => (
+const MealGroups = ({ foods, onDelete }: { foods: CustomFood[]; onDelete: (id: string) => void }) => {
+  const grouped = mealOrder
+    .map((mealType) => ({ mealType, foods: foods.filter((f) => f.meal_type === mealType) }))
+    .filter((g) => g.foods.length > 0);
+  const unassigned = foods.filter((f) => !f.meal_type || !(f.meal_type in mealTypeLabels));
+  return (
+    <div className="space-y-4">
+      {grouped.map(({ mealType, foods: mealFoods }) => (
+        <div key={mealType}>
+          <p className="text-sm font-medium text-foreground mb-2">
+            {mealTypeIcons[mealType]} {mealTypeLabels[mealType]}
+          </p>
+          <FoodChips foods={mealFoods} onDelete={onDelete} />
+        </div>
+      ))}
+      {unassigned.length > 0 && (
+        <div>
+          <p className="text-sm font-medium text-foreground mb-2">Öğünü belirsiz</p>
+          <FoodChips foods={unassigned} onDelete={onDelete} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FoodChips = ({ foods, onDelete }: { foods: { id: string; name: string; calories: number }[]; onDelete: (id: string) => void }) => (
   <div className="flex flex-wrap gap-2">
     {foods.map((food) => (
-      <span
-        key={food.id}
-        className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 text-sm bg-secondary text-secondary-foreground rounded-full"
-      >
+      <span key={food.id} className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 text-sm bg-secondary text-secondary-foreground rounded-full">
         {food.name}
         <span className="text-xs text-muted-foreground">{food.calories} kcal</span>
         <button

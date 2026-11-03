@@ -11,6 +11,9 @@ export interface CustomFood {
   carbs: number | null;
   fat: number | null;
   meal_type: string | null;
+  day_label?: string | null;
+  day_index?: number | null;
+  created_at?: string;
 }
 
 export const useCustomFoods = (userId: string | undefined, onSchedulesUpdated?: () => void) => {
@@ -55,7 +58,7 @@ export const useCustomFoods = (userId: string | undefined, onSchedulesUpdated?: 
 
       if (data?.success) {
         const message = data.count > 0
-          ? `${data.count} yiyecek listeye eklendi.`
+          ? `${data.count} yiyecek listeye eklendi${data.dayCount > 1 ? ` (${data.dayCount} güne ayrıldı)` : ''}.`
           : 'Dosyada yiyecek bulunamadı.';
         toast({ title: 'Liste yüklendi', description: message });
         fetchCustomFoods();

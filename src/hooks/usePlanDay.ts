@@ -208,7 +208,7 @@ export const usePlanDay = (dietitianId: string | undefined, clientId: string | u
     const { data, error } = await supabase.functions.invoke('plan-assist', { body });
     if (error) throw new Error(data?.error || error.message);
     if (!data?.success) throw new Error(data?.error || 'AI yanıt vermedi');
-    return data.items as { name: string; mealType: MealType | null; calories: number; protein: number | null; carbs: number | null; fat: number | null }[];
+    return data.items as { name: string; mealType: MealType | null; calories: number; protein: number | null; carbs: number | null; fat: number | null; dayIndex?: number; dayLabel?: string }[];
   };
 
   // Kalorisi girilmemiş satırları tek AI isteğiyle hesaplar
@@ -257,10 +257,45 @@ export const usePlanDay = (dietitianId: string | undefined, clientId: string | u
     toast({ title: 'Plan eklendi', description: `${valid.length} yiyecek öğünlere dağıtıldı.` });
   });
 
+  // Dosyadan çıkarılan günleri seçili tarihten itibaren arka arkaya plan günlerine yazar
+  const importFile = (payload: Record<string, unknown>) => run('Dosyadan yükleme', async () => {
+    const results = await invokeAssist({ mode: 'file', ...payload });
+    const valid = results.filter((r) => r.mealType);
+    if (valid.length === 0) {
+      toast({ title: 'Yiyecek bulunamadı', description: 'Dosyada öğün/yiyecek tanınamadı.', variant: 'destructive' });
+      return;
+    }
+    const dayIndexes = [...new Set(valid.map((r) => r.dayIndex ?? 0))].sort((a, b) => a - b);
+    for (const [offset, dayIndex] of dayIndexes.entries()) {
+      const target = addDays(date, offset);
+      const d = await ensureDay(target);
+      await supabase.from('plan_items').delete().eq('plan_day_id', d.id);
+      const dayItems = valid.filter((r) => (r.dayIndex ?? 0) === dayIndex);
+      const { error } = await supabase.from('plan_items').insert(
+        dayItems.map((r, i) => ({
+          plan_day_id: d.id,
+          client_id: clientId!,
+          meal_type: r.mealType!,
+          name: r.name,
+          calories: r.calories,
+          protein: r.protein,
+          carbs: r.carbs,
+          fat: r.fat,
+          sort_order: i,
+        }))
+      );
+      if (error) throw error;
+    }
+    toast({
+      title: 'Plan yüklendi',
+      description: dayIndexes.length > 1 ? `${valid.length} yiyecek ${dayIndexes.length} güne dağıtıldı (${date} tarihinden itibaren).` : `${valid.length} yiyecek bu güne eklendi.`,
+    });
+  });
+
   const updateCalories = (id: string, calories: number) => run('Güncelleme', async () => {
     const { error } = await supabase.from('plan_items').update({ calories }).eq('id', id);
     if (error) throw error;
   });
 
-  return { day, items, loading, saving, addItems, removeItem, saveNote, clearDay, copyTo, copyToNextDays, importClientList, estimateMissing, parseText, updateCalories, refetch };
+  return { day, items, loading, saving, addItems, removeItem, saveNote, clearDay, copyTo, copyToNextDays, importClientList, importFile, estimateMissing, parseText, updateCalories, refetch };
 };

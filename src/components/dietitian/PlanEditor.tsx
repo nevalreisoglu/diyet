@@ -1,5 +1,7 @@
-import { useEffect, useId, useState } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, Plus, X, CopyPlus, ListPlus, Trash2, StickyNote, Sparkles, FileText, Calculator } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Loader2, Plus, X, CopyPlus, ListPlus, Trash2, StickyNote, Sparkles, FileText, Calculator, FileUp } from 'lucide-react';
+import { prepareFilePayload, UPLOAD_ACCEPT } from '@/lib/filePayload';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,6 +33,20 @@ export const PlanEditor = ({ dietitianId, clientId, date, onDateChange }: Props)
   const [editingCal, setEditingCal] = useState<{ id: string; value: string } | null>(null);
   const listId = useId();
   const suggestions = usePlanSuggestions(clientId, plan.items.length);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const payload = await prepareFilePayload(file);
+      await plan.importFile(payload as unknown as Record<string, unknown>);
+    } catch (error) {
+      toast({ title: 'Dosya okunamadı', description: error instanceof Error ? error.message : 'Hata', variant: 'destructive' });
+    }
+  };
 
   useEffect(() => {
     setNote(plan.day?.note ?? '');
@@ -69,6 +85,10 @@ export const PlanEditor = ({ dietitianId, clientId, date, onDateChange }: Props)
       <div className="flex flex-wrap gap-2 items-center">
         <Button variant={textOpen ? 'default' : 'outline'} size="sm" onClick={() => setTextOpen((v) => !v)} className="gap-1.5">
           <FileText className="h-4 w-4" /> Günü yazarak gir
+        </Button>
+        <input ref={fileRef} type="file" accept={UPLOAD_ACCEPT} className="hidden" onChange={handleFile} />
+        <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={plan.saving} className="gap-1.5" title="PDF/fotoğraf/Excel/Word; günlere ayrılmışsa bu tarihten itibaren arka arkaya günlere dağıtılır">
+          <FileUp className="h-4 w-4" /> Dosyadan yükle
         </Button>
         <Button variant="outline" size="sm" onClick={plan.importClientList} disabled={plan.saving} className="gap-1.5">
           <ListPlus className="h-4 w-4" /> Danışanın listesinden al
