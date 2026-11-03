@@ -115,14 +115,13 @@ Kurallar:
 - Yiyecek adlarını MUTLAKA Türkçe yaz. Dosya başka bir dildeyse adları Türkçeye çevir (örn. "Boiled egg" -> "Haşlanmış yumurta", "Almonds" -> "Badem")
 - Porsiyon/miktar bilgisini adın sonunda parantez içinde Türkçe koru (örn. "Haşlanmış yumurta (1 adet)", "Badem (10 adet)", "Yulaf (2 yemek kaşığı)")
 - Her yiyecek için tahmini kalori ve besin değerlerini hesapla
-- Her yiyecek için hangi öğüne ait olduğunu mealType alanında belirt; öğünü belgedeki başlığa göre seç, yiyeceğin türüne göre tahmin etme:
-  - "Kahvaltı", "Sabah" -> "breakfast"
-  - "Kuşluk", "Sabah ara öğünü", "1. ara öğün", "Ara öğün 1" (kahvaltı ile öğle arası) -> "snack1"
-  - "Öğle", "Öğle yemeği" -> "lunch"
-  - "İkindi", "Öğleden sonra ara", "2. ara öğün", "Ara öğün 2" (öğle ile akşam arası) -> "snack2"
-  - "Akşam", "Akşam yemeği" -> "dinner"
-  - "Gece", "Yatmadan önce", "3. ara öğün", "Ara öğün 3" (akşamdan sonra) -> "snack3"
-  - Ana öğünleri (kahvaltı/öğle/akşam) ASLA snack olarak işaretleme; başlıkta sadece "Ara öğün" yazıyorsa belgedeki sırasına göre snack1/snack2/snack3 ver
+- Her yiyecek için hangi öğüne ait olduğunu mealType alanında belirt. ÖNCELİK SIRASI:
+  1) Başlıkta saat varsa SAATE göre eşle (başlığın adı ne olursa olsun): 06:00-10:30 -> "breakfast", 10:30-11:30 -> "snack1", 11:30-15:00 -> "lunch", 15:00-17:00 -> "snack2", 17:00-21:00 -> "dinner", 21:00 sonrası -> "snack3"
+  2) Saat yoksa başlığa göre: "Kahvaltı", "Sabah", "İlk öğün", "1. öğün" -> "breakfast"; "Öğle", "Öğle yemeği", günün ortasındaki ana öğün -> "lunch"; "Akşam", "Akşam yemeği", günün son ana öğünü -> "dinner"; "Kuşluk" -> "snack1"; "İkindi" -> "snack2"; "Gece", "Yatmadan önce" -> "snack3"
+  3) Başlık "Ara öğün" olsa bile et/tavuk/balık/pilav/çorba gibi ana yemekler içeriyorsa ve öğle saatlerine denk geliyorsa bu bir ana öğündür: "lunch" ver
+  - Belgede günde yalnızca 3 ana öğün varsa bunlar sırayla breakfast, lunch, dinner olmalı; ana öğünleri ASLA snack yapma
+  - Tüm günler için ortak "ara öğün seçenekleri" bölümündeki yiyecekleri ara öğünlere dağıt: "akşam için" / "gece" notu olanlar -> "snack3", diğerleri -> "snack1" ve "snack2" (her seçeneği bir kez yaz)
+- Su, maden suyu, sade çay/kahve gibi kalorisiz içecekleri listeye alma
 - Öğün saatleri metinde varsa onları kullan, yoksa varsayılan değerleri kullan
 - Tüm yiyecekleri listele, kalori belirtilmemişse tahmin et
 - Liste günlere ayrılmışsa (Pazartesi/Salı..., 1. Gün/2. Gün..., Gün 1...) her günü ayrı bir "days" öğesi yap ve etiketi dosyadaki gibi yaz; günler belgedeki sırayla olsun
