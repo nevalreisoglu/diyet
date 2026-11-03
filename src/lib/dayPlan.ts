@@ -4,10 +4,15 @@ const WEEKDAYS = ['pazar', 'pazartesi', 'salı', 'çarşamba', 'perşembe', 'cum
 
 const normalize = (s: string) => s.trim().toLocaleLowerCase('tr-TR');
 
-const weekdayOf = (label: string): number | null => {
-  const n = normalize(label);
-  const idx = WEEKDAYS.findIndex((w) => n.includes(w));
-  return idx >= 0 ? idx : null;
+// Etiketteki tüm gün adlarını tam kelime olarak eşler ("Pazartesi Salı Perşembe" -> {1, 2, 4})
+const weekdaysOf = (label: string): Set<number> => {
+  const tokens = normalize(label).split(/[^a-zçğıöşü]+/i).filter(Boolean);
+  const found = new Set<number>();
+  for (const t of tokens) {
+    const idx = WEEKDAYS.indexOf(t);
+    if (idx >= 0) found.add(idx);
+  }
+  return found;
 };
 
 export interface DayGroup {
@@ -32,10 +37,10 @@ export const selectTodayGroup = (foods: CustomFood[], today = new Date()): { foo
   const groups = groupByDay(foods);
   if (groups.length === 0) return { foods, label: null, groups };
 
-  const byWeekday = groups.filter((g) => weekdayOf(g.label) !== null);
+  const byWeekday = groups.filter((g) => weekdaysOf(g.label).size > 0);
   if (byWeekday.length >= groups.length / 2) {
     const todayIdx = today.getDay();
-    const match = byWeekday.find((g) => weekdayOf(g.label) === todayIdx);
+    const match = byWeekday.find((g) => weekdaysOf(g.label).has(todayIdx));
     if (match) return { foods: match.foods, label: match.label, groups };
   }
 
