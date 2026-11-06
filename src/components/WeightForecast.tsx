@@ -309,7 +309,8 @@ export const WeightForecast = ({ userId }: WeightForecastProps) => {
           </div>
           {ruleBasedForecast && (
             <p className="text-xs text-muted-foreground">
-              Kural tabanlı: Ort. günlük denge ({ruleBasedForecast.avgDailyBalance} kcal) × 7700 kcal/kg sabit formülü. 
+              Kural tabanlı: Ort. günlük denge ({ruleBasedForecast.avgDailyBalance} kcal) × 7700 kcal/kg sabit formülü.
+              {ruleBasedForecast.maintenanceKcal && ` Denge, ${ruleBasedForecast.maintenanceKcal} kcal bakım kalorisine (${ruleBasedForecast.maintenanceBasis}) ve kaydedilen egzersize göre hesaplanır.`} 
               Prediktif: Ağırlıklı regresyon + EWMA momentum blend modeli.
             </p>
           )}

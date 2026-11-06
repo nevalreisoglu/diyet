@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchBodyMeasurements, BodyMeasurement } from '@/hooks/useBodyMeasurements';
+import { estimateBmr, MODERATE_FACTOR, type BmrSource } from '@/lib/metabolism';
 
-export type BmrSource = 'measured' | 'bodyFat' | 'formula';
+export type { BmrSource };
 
 export interface MetabolicProfile {
   age: number | null;
@@ -30,16 +31,6 @@ export interface RecentMetrics {
   avgTea: number;
   daysTracked: number;
 }
-
-const calculateBMR = (weight: number, height: number, age: number, gender: 'male' | 'female'): number => {
-  // Mifflin-St Jeor
-  if (gender === 'male') return 10 * weight + 6.25 * height - 5 * age + 5;
-  return 10 * weight + 6.25 * height - 5 * age - 161;
-};
-
-// Katch-McArdle: yağsız kütleye dayalı, yağ oranı biliniyorsa daha isabetli
-const calculateBMRFromBodyFat = (weight: number, bodyFatPct: number): number =>
-  370 + 21.6 * (weight * (1 - bodyFatPct / 100));
 
 const calculateBMI = (weight: number, heightCm: number): number => {
   const heightM = heightCm / 100;
@@ -93,18 +84,18 @@ export const useMetabolicProfile = (userId: string | undefined) => {
       let bmi: number | null = null;
       let bmiCategory: string | null = null;
 
-      if (latestMeasurement?.bmr_kcal) {
-        bmr = Math.round(latestMeasurement.bmr_kcal);
-        bmrSource = 'measured';
-      } else if (currentWeight && latestMeasurement?.body_fat_pct) {
-        bmr = Math.round(calculateBMRFromBodyFat(currentWeight, latestMeasurement.body_fat_pct));
-        bmrSource = 'bodyFat';
-      } else if (currentWeight && heightCm && age && gender) {
-        bmr = Math.round(calculateBMR(currentWeight, heightCm, age, gender));
-        bmrSource = 'formula';
-      }
-      if (bmr) {
-        tdee = Math.round(bmr * 1.55); // moderate activity default
+      const estimate = estimateBmr({
+        weightKg: currentWeight,
+        heightCm,
+        age,
+        gender,
+        bodyFatPct: latestMeasurement?.body_fat_pct,
+        measuredBmrKcal: latestMeasurement?.bmr_kcal,
+      });
+      if (estimate) {
+        bmr = estimate.bmr;
+        bmrSource = estimate.source;
+        tdee = Math.round(bmr * MODERATE_FACTOR);
       }
       if (currentWeight && heightCm) {
         bmi = Math.round(calculateBMI(currentWeight, heightCm) * 10) / 10;
