@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { estimateBmr } from '@/lib/metabolism';
 
 interface ForecastResult {
   kg: number;
@@ -11,6 +12,8 @@ export interface RuleBasedForecast {
   monthlyForecast: ForecastResult;
   threeMonthForecast: ForecastResult;
   avgDailyBalance: number;
+  maintenanceKcal?: number;
+  maintenanceBasis?: string;
 }
 
 export interface ModelInfo {
@@ -58,6 +61,8 @@ interface HistoryData {
     currentWeightKg: number | null;
     targetWeightKg: number | null;
     weightGoalWeeks: number;
+    bmrKcal: number | null;
+    bmrSource: string | null;
   };
 }
 
@@ -85,17 +90,34 @@ export const useWeightForecast = (userId: string | undefined) => {
       const endDateStr = endDate.toISOString().split('T')[0];
 
       // Fetch profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('target_calories, target_water_ml, current_weight_kg, target_weight_kg, weight_goal_weeks')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const [{ data: profile }, { data: latestMeasurement }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('target_calories, target_water_ml, current_weight_kg, target_weight_kg, weight_goal_weeks, age, gender, height_cm')
+          .eq('user_id', userId)
+          .maybeSingle(),
+        supabase
+          .from('body_measurements')
+          .select('bmr_kcal, body_fat_pct')
+          .eq('user_id', userId)
+          .order('measured_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
       const targetCalories = profile?.target_calories || 2000;
       const targetWaterMl = profile?.target_water_ml || 2000;
-      const currentWeightKg = profile?.current_weight_kg || null;
-      const targetWeightKg = profile?.target_weight_kg || null;
+      const currentWeightKg = profile?.current_weight_kg ? Number(profile.current_weight_kg) : null;
+      const targetWeightKg = profile?.target_weight_kg ? Number(profile.target_weight_kg) : null;
       const weightGoalWeeks = profile?.weight_goal_weeks || 12;
+      const bmrEstimate = estimateBmr({
+        weightKg: currentWeightKg,
+        heightCm: profile?.height_cm ? Number(profile.height_cm) : null,
+        age: profile?.age ?? null,
+        gender: (profile?.gender as 'male' | 'female') ?? null,
+        bodyFatPct: latestMeasurement?.body_fat_pct ? Number(latestMeasurement.body_fat_pct) : null,
+        measuredBmrKcal: latestMeasurement?.bmr_kcal ?? null,
+      });
 
       // Fetch all data in parallel
       const [mealsResult, waterResult, exerciseResult, beverageResult] = await Promise.all([
@@ -212,6 +234,8 @@ export const useWeightForecast = (userId: string | undefined) => {
           currentWeightKg,
           targetWeightKg,
           weightGoalWeeks,
+          bmrKcal: bmrEstimate?.bmr ?? null,
+          bmrSource: bmrEstimate?.source ?? null,
         },
       };
 

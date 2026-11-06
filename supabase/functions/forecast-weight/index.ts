@@ -24,8 +24,16 @@ interface HistoryData {
     currentWeightKg: number | null;
     targetWeightKg: number | null;
     weightGoalWeeks: number;
+    bmrKcal?: number | null;
+    bmrSource?: string | null;
   };
 }
+
+// Egzersiz ayrıca kaydedildiği için bakım = BMR x hareketsiz katsayı + kaydedilen egzersiz yakımı
+const SEDENTARY_FACTOR = 1.2;
+const MIN_DAYS_FOR_TREND = 14;
+const MAX_TREND_SLOPE = 15; // kcal/gün başına günlük değişim sınırı
+const MAX_DAILY_BALANCE = 1500;
 
 // ─── Statistical Helpers ───
 
@@ -82,19 +90,15 @@ function stddev(values: number[]): number {
   return Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1));
 }
 
-/** Compute net daily energy balance (calories in − exercise burn − metabolic boosts) */
-function computeNetBalance(d: DailyDataPoint): number {
-  // Adaptive burn: MET-based estimate ~5.5-7.5 kcal/min depending on exercise volume
+/** Net daily energy balance: intake − (sedentary maintenance + logged exercise burn). Negative = deficit */
+function computeNetBalance(d: DailyDataPoint, maintenanceKcal: number): number {
   const burnRate = d.exerciseMinutes > 45 ? 7.5 : d.exerciseMinutes > 20 ? 6.5 : 5.5;
   const exerciseBurn = d.exerciseMinutes * burnRate;
-  // Hydration & caffeine metabolic boost: good hydration/caffeine increases metabolism = more burn
-  const hydrationBoost = d.waterMl >= d.targetWaterMl ? 50 : (d.waterMl / d.targetWaterMl) * 50;
-  const caffeineBoost = Math.min((d.coffeeCount + d.teaCount * 0.5) * 10, 40);
-  // Negative = deficit (weight loss), Positive = surplus (weight gain)
-  return d.calories - d.targetCalories - exerciseBurn - hydrationBoost - caffeineBoost;
+  const balance = d.calories - maintenanceKcal - exerciseBurn;
+  return Math.max(-MAX_DAILY_BALANCE, Math.min(MAX_DAILY_BALANCE, balance));
 }
 
-/** Project weight change using EWMA baseline + dampened trend */
+/** Project weight change using EWMA baseline; trend only with enough data, bounded and dampened */
 function projectWeight(
   netBalances: number[],
   days: number
@@ -102,25 +106,22 @@ function projectWeight(
   const n = netBalances.length;
   if (n === 0) return { kg: 0, direction: "stable" };
 
-  const reg = weightedLinearRegression(netBalances, 0.96);
   const smoothed = ewma(netBalances, 0.3);
-
-  // Current daily balance from EWMA (most reliable current estimate)
   const currentDaily = smoothed[smoothed.length - 1] ?? 0;
-
-  // Recent 7-day average as stable anchor
   const recentWindow = Math.min(7, n);
   const recentAvg = netBalances.slice(-recentWindow).reduce((a, b) => a + b, 0) / recentWindow;
-
-  // Dampen the trend slope for longer projections to prevent wild extrapolation
-  const dampening = Math.exp(-days / 120);
-  const dailyTrendChange = reg.slope * dampening;
-
-  // Base daily rate: blend EWMA current (responsive) with recent average (stable)
   const baseDaily = currentDaily * 0.6 + recentAvg * 0.4;
 
-  // Total = integral of (baseDaily + dailyTrendChange * t) over [0, days]
-  const totalBalance = baseDaily * days + dailyTrendChange * days * (days - 1) / 2;
+  let totalBalance = baseDaily * days;
+
+  if (n >= MIN_DAYS_FOR_TREND) {
+    const reg = weightedLinearRegression(netBalances, 0.96);
+    const slope = Math.max(-MAX_TREND_SLOPE, Math.min(MAX_TREND_SLOPE, reg.slope));
+    // Trend en fazla 30 gün sürdürülür ve sönümlenir; sonsuz ekstrapolasyon yok
+    const trendDays = Math.min(days, 30);
+    const dampening = Math.exp(-trendDays / 60);
+    totalBalance += slope * dampening * trendDays * (trendDays - 1) / 2;
+  }
 
   const kgChange = totalBalance / 7700;
   const absKg = Math.abs(Number(kgChange.toFixed(2)));
@@ -154,7 +155,10 @@ serve(async (req) => {
     );
 
     // ─── Compute statistical features ───
-    const netBalances = sorted.map(computeNetBalance);
+    const bmr = historyData.userProfile.bmrKcal ?? null;
+    const maintenanceKcal = bmr ? Math.round(bmr * SEDENTARY_FACTOR) : historyData.userProfile.targetCalories;
+    const maintenanceBasis = bmr ? `BMR ${bmr} kcal x ${SEDENTARY_FACTOR} (hareketsiz bakım)` : 'kalori hedefi (BMR bilinmiyor)';
+    const netBalances = sorted.map((d) => computeNetBalance(d, maintenanceKcal));
     const calorieValues = sorted.map(d => d.calories);
     const exerciseValues = sorted.map(d => d.exerciseMinutes);
     const waterRatios = sorted.map(d => d.waterMl / d.targetWaterMl);
@@ -223,7 +227,7 @@ serve(async (req) => {
 
     // ─── Confidence level based on data quality ───
     const confidenceLevel: "low" | "medium" | "high" =
-      sorted.length >= 21 && balanceReg.r2 > 0.3 ? "high"
+      sorted.length >= 21 && bmr ? "high"
       : sorted.length >= 10 ? "medium"
       : "low";
 
@@ -271,8 +275,9 @@ serve(async (req) => {
 MODEL BİLGİLERİ:
 - Ağırlıklı Lineer Regresyon (decay=0.96) ile trend analizi yapıldı
 - EWMA (α=0.3) ile kısa vadeli momentum hesaplandı
-- Projeksiyonlar %60 regresyon + %40 momentum blend ile oluşturuldu
-- Net enerji dengesi = kalori alımı - hedef kalori - egzersiz yakımı + hidrasyon/kafein metabolik etkisi
+- Projeksiyonlar EWMA + son 7 gün ortalaması ile oluşturuldu; trend yalnızca ${MIN_DAYS_FOR_TREND}+ günlük veride ve sınırlı olarak kullanıldı
+- Net enerji dengesi = kalori alımı - bakım kalorisi - egzersiz yakımı. Bakım kalorisi: ${maintenanceBasis} = ${maintenanceKcal} kcal/gün
+- Negatif denge = açık (kilo kaybı), pozitif = fazla (kilo artışı). Kullanıcının kalori HEDEFİ (${historyData.userProfile.targetCalories} kcal) bakım değildir; hedefin altında kalmak kilo verdirir demek değildir, bakımın altında kalmak verdirir
 
 ÖNEMLİ KURALLAR:
 - Model çıktılarını temel al, kendi formüllerin ile ÇAKIŞMA yaratma
@@ -316,7 +321,7 @@ ${JSON.stringify(sorted.slice(-7).map(d => ({
   kalori: d.calories,
   egzersiz_dk: d.exerciseMinutes,
   su_ml: d.waterMl,
-  net_denge: Math.round(computeNetBalance(d))
+  net_denge: Math.round(computeNetBalance(d, maintenanceKcal))
 })), null, 2)}
 
 Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneriler üret.`;
@@ -346,6 +351,8 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           monthlyForecast: ruleMonthly,
           threeMonthForecast: ruleThreeMonth,
           avgDailyBalance: Math.round(avgNetBalance),
+          maintenanceKcal,
+          maintenanceBasis,
         },
         dataPointCount: sorted.length,
         modelInfo: {
@@ -417,6 +424,8 @@ Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneril
           monthlyForecast: ruleMonthly,
           threeMonthForecast: ruleThreeMonth,
           avgDailyBalance: Math.round(avgNetBalance),
+          maintenanceKcal,
+          maintenanceBasis,
         },
         dataPointCount: sorted.length,
         modelInfo: {
