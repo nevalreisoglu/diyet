@@ -18,6 +18,7 @@ import { MeasurementUploader } from '@/components/MeasurementUploader';
 import { ReminderSettings } from '@/components/ReminderSettings';
 import { MyDietitianCard } from '@/components/MyDietitianCard';
 import { useRole } from '@/hooks/useRole';
+import { ACTIVITY_LEVELS, DEFAULT_ACTIVITY_LEVEL, toActivityLevel, type ActivityLevel } from '@/lib/metabolism';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ const Settings = () => {
   const [weightGoalWeeks, setWeightGoalWeeks] = useState(12);
   const [heightCm, setHeightCm] = useState<number | null>(null);
   const [gender, setGender] = useState<string | null>(null);
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>(DEFAULT_ACTIVITY_LEVEL);
   const [age, setAge] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -64,7 +66,7 @@ const Settings = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('target_calories, target_water_ml, display_name, current_weight_kg, target_weight_kg, weight_goal_weeks, height_cm, gender, age')
+          .select('target_calories, target_water_ml, display_name, current_weight_kg, target_weight_kg, weight_goal_weeks, height_cm, gender, age, activity_level')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -79,6 +81,7 @@ const Settings = () => {
           setWeightGoalWeeks(data.weight_goal_weeks ?? 12);
           setHeightCm(data.height_cm ? Number(data.height_cm) : null);
           setGender(data.gender ?? null);
+          setActivityLevel(toActivityLevel((data as any).activity_level));
           setAge(data.age ?? null);
         }
       } catch (error) {
@@ -108,6 +111,7 @@ const Settings = () => {
           height_cm: heightCm,
           gender: gender,
           age: age,
+          activity_level: activityLevel,
         })
         .eq('user_id', user.id);
 
@@ -421,6 +425,25 @@ const Settings = () => {
                   <SelectItem value="female">Kadın</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="activityLevel">Aktivite düzeyi</Label>
+              <Select value={activityLevel} onValueChange={(value) => setActivityLevel(toActivityLevel(value))}>
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACTIVITY_LEVELS.map((l) => (
+                    <SelectItem key={l.value} value={l.value}>
+                      {l.label} <span className="text-muted-foreground">· {l.desc}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground max-w-md">
+                Günlük enerji harcamanızı (TDEE) ve kilo tahminini belirler. Hareketsiz/hafif düzeyde kaydettiğiniz egzersiz ayrıca sayılır; orta/yüksek düzeyde egzersiz katsayıya dahildir.
+              </p>
             </div>
           </CardContent>
         </Card>

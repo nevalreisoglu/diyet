@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { estimateBmr } from '@/lib/metabolism';
+import { estimateBmr, toActivityLevel, activityFactor, countsLoggedExercise } from '@/lib/metabolism';
 
 interface ForecastResult {
   kg: number;
@@ -63,6 +63,9 @@ interface HistoryData {
     weightGoalWeeks: number;
     bmrKcal: number | null;
     bmrSource: string | null;
+    activityLevel: string;
+    activityFactor: number;
+    countLoggedExercise: boolean;
   };
 }
 
@@ -93,7 +96,7 @@ export const useWeightForecast = (userId: string | undefined) => {
       const [{ data: profile }, { data: latestMeasurement }] = await Promise.all([
         supabase
           .from('profiles')
-          .select('target_calories, target_water_ml, current_weight_kg, target_weight_kg, weight_goal_weeks, age, gender, height_cm')
+          .select('target_calories, target_water_ml, current_weight_kg, target_weight_kg, weight_goal_weeks, age, gender, height_cm, activity_level')
           .eq('user_id', userId)
           .maybeSingle(),
         supabase
@@ -110,6 +113,7 @@ export const useWeightForecast = (userId: string | undefined) => {
       const currentWeightKg = profile?.current_weight_kg ? Number(profile.current_weight_kg) : null;
       const targetWeightKg = profile?.target_weight_kg ? Number(profile.target_weight_kg) : null;
       const weightGoalWeeks = profile?.weight_goal_weeks || 12;
+      const activityLevel = toActivityLevel((profile as any)?.activity_level);
       const bmrEstimate = estimateBmr({
         weightKg: currentWeightKg,
         heightCm: profile?.height_cm ? Number(profile.height_cm) : null,
@@ -236,6 +240,9 @@ export const useWeightForecast = (userId: string | undefined) => {
           weightGoalWeeks,
           bmrKcal: bmrEstimate?.bmr ?? null,
           bmrSource: bmrEstimate?.source ?? null,
+          activityLevel,
+          activityFactor: activityFactor(activityLevel),
+          countLoggedExercise: countsLoggedExercise(activityLevel),
         },
       };
 

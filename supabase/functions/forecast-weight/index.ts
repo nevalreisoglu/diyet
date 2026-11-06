@@ -26,11 +26,14 @@ interface HistoryData {
     weightGoalWeeks: number;
     bmrKcal?: number | null;
     bmrSource?: string | null;
+    activityLevel?: string;
+    activityFactor?: number;
+    countLoggedExercise?: boolean;
   };
 }
 
-// Egzersiz ayrıca kaydedildiği için bakım = BMR x hareketsiz katsayı + kaydedilen egzersiz yakımı
-const SEDENTARY_FACTOR = 1.2;
+// Varsayılan: hafif aktivite; kaydedilen egzersiz yalnızca hareketsiz/hafif düzeyde ayrıca sayılır
+const DEFAULT_ACTIVITY_FACTOR = 1.375;
 const MIN_DAYS_FOR_TREND = 14;
 const MAX_TREND_SLOPE = 15; // kcal/gün başına günlük değişim sınırı
 const MAX_DAILY_BALANCE = 1500;
@@ -91,9 +94,9 @@ function stddev(values: number[]): number {
 }
 
 /** Net daily energy balance: intake − (sedentary maintenance + logged exercise burn). Negative = deficit */
-function computeNetBalance(d: DailyDataPoint, maintenanceKcal: number): number {
+function computeNetBalance(d: DailyDataPoint, maintenanceKcal: number, countExercise: boolean): number {
   const burnRate = d.exerciseMinutes > 45 ? 7.5 : d.exerciseMinutes > 20 ? 6.5 : 5.5;
-  const exerciseBurn = d.exerciseMinutes * burnRate;
+  const exerciseBurn = countExercise ? d.exerciseMinutes * burnRate : 0;
   const balance = d.calories - maintenanceKcal - exerciseBurn;
   return Math.max(-MAX_DAILY_BALANCE, Math.min(MAX_DAILY_BALANCE, balance));
 }
@@ -156,9 +159,14 @@ serve(async (req) => {
 
     // ─── Compute statistical features ───
     const bmr = historyData.userProfile.bmrKcal ?? null;
-    const maintenanceKcal = bmr ? Math.round(bmr * SEDENTARY_FACTOR) : historyData.userProfile.targetCalories;
-    const maintenanceBasis = bmr ? `BMR ${bmr} kcal x ${SEDENTARY_FACTOR} (hareketsiz bakım)` : 'kalori hedefi (BMR bilinmiyor)';
-    const netBalances = sorted.map((d) => computeNetBalance(d, maintenanceKcal));
+    const factor = historyData.userProfile.activityFactor ?? DEFAULT_ACTIVITY_FACTOR;
+    const countExercise = historyData.userProfile.countLoggedExercise ?? true;
+    const levelLabel = historyData.userProfile.activityLevel ?? 'light';
+    const maintenanceKcal = bmr ? Math.round(bmr * factor) : historyData.userProfile.targetCalories;
+    const maintenanceBasis = bmr
+      ? `BMR ${bmr} x ${factor} (${levelLabel} aktivite)${countExercise ? ' + kaydedilen egzersiz' : ''}`
+      : 'kalori hedefi (BMR bilinmiyor)';
+    const netBalances = sorted.map((d) => computeNetBalance(d, maintenanceKcal, countExercise));
     const calorieValues = sorted.map(d => d.calories);
     const exerciseValues = sorted.map(d => d.exerciseMinutes);
     const waterRatios = sorted.map(d => d.waterMl / d.targetWaterMl);
@@ -276,7 +284,7 @@ MODEL BİLGİLERİ:
 - Ağırlıklı Lineer Regresyon (decay=0.96) ile trend analizi yapıldı
 - EWMA (α=0.3) ile kısa vadeli momentum hesaplandı
 - Projeksiyonlar EWMA + son 7 gün ortalaması ile oluşturuldu; trend yalnızca ${MIN_DAYS_FOR_TREND}+ günlük veride ve sınırlı olarak kullanıldı
-- Net enerji dengesi = kalori alımı - bakım kalorisi - egzersiz yakımı. Bakım kalorisi: ${maintenanceBasis} = ${maintenanceKcal} kcal/gün
+- Net enerji dengesi = kalori alımı - bakım kalorisi${countExercise ? ' - kaydedilen egzersiz yakımı' : ' (egzersiz aktivite katsayısına dahil)'}. Bakım kalorisi: ${maintenanceBasis} = ${maintenanceKcal} kcal/gün
 - Negatif denge = açık (kilo kaybı), pozitif = fazla (kilo artışı). Kullanıcının kalori HEDEFİ (${historyData.userProfile.targetCalories} kcal) bakım değildir; hedefin altında kalmak kilo verdirir demek değildir, bakımın altında kalmak verdirir
 
 ÖNEMLİ KURALLAR:
@@ -321,7 +329,7 @@ ${JSON.stringify(sorted.slice(-7).map(d => ({
   kalori: d.calories,
   egzersiz_dk: d.exerciseMinutes,
   su_ml: d.waterMl,
-  net_denge: Math.round(computeNetBalance(d, maintenanceKcal))
+  net_denge: Math.round(computeNetBalance(d, maintenanceKcal, countExercise))
 })), null, 2)}
 
 Bu istatistiksel model çıktılarını yorumla ve kişiselleştirilmiş öneriler üret.`;

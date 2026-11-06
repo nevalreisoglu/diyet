@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchBodyMeasurements, BodyMeasurement } from '@/hooks/useBodyMeasurements';
-import { estimateBmr, MODERATE_FACTOR, type BmrSource } from '@/lib/metabolism';
+import { estimateBmr, maintenanceKcal, toActivityLevel, type ActivityLevel, type BmrSource } from '@/lib/metabolism';
 
-export type { BmrSource };
+export type { BmrSource, ActivityLevel };
 
 export interface MetabolicProfile {
   age: number | null;
@@ -15,6 +15,7 @@ export interface MetabolicProfile {
   targetWaterMl: number;
   bmr: number | null;
   bmrSource: BmrSource | null;
+  activityLevel: ActivityLevel;
   tdee: number | null;
   bmi: number | null;
   bmiCategory: string | null;
@@ -56,7 +57,7 @@ export const useMetabolicProfile = (userId: string | undefined) => {
     try {
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('age, gender, height_cm, current_weight_kg, target_weight_kg, target_calories, target_water_ml')
+        .select('age, gender, height_cm, current_weight_kg, target_weight_kg, target_calories, target_water_ml, activity_level')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -77,6 +78,7 @@ export const useMetabolicProfile = (userId: string | undefined) => {
         : latestMeasurement?.weight_kg ?? null;
       const targetCalories = profileData?.target_calories ?? 2000;
       const targetWaterMl = profileData?.target_water_ml ?? 2000;
+      const activityLevel = toActivityLevel((profileData as any)?.activity_level);
 
       let bmr: number | null = null;
       let bmrSource: BmrSource | null = null;
@@ -95,7 +97,7 @@ export const useMetabolicProfile = (userId: string | undefined) => {
       if (estimate) {
         bmr = estimate.bmr;
         bmrSource = estimate.source;
-        tdee = Math.round(bmr * MODERATE_FACTOR);
+        tdee = maintenanceKcal(bmr, activityLevel);
       }
       if (currentWeight && heightCm) {
         bmi = Math.round(calculateBMI(currentWeight, heightCm) * 10) / 10;
@@ -108,7 +110,7 @@ export const useMetabolicProfile = (userId: string | undefined) => {
       setProfile({
         age, gender, heightCm, currentWeight,
         targetWeight: profileData?.target_weight_kg ? Number(profileData.target_weight_kg) : null,
-        targetCalories, targetWaterMl, bmr, bmrSource, tdee, bmi, bmiCategory,
+        targetCalories, targetWaterMl, bmr, bmrSource, activityLevel, tdee, bmi, bmiCategory,
         latestMeasurement, previousMeasurement, measurements,
       });
 

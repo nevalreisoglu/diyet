@@ -26,7 +26,24 @@ export const estimateBmr = (input: BmrInput): { bmr: number; source: BmrSource }
   return null;
 };
 
-// Hareketsiz bakım: egzersiz ayrıca kaydedildiği için TDEE yerine bu kullanılır
-export const SEDENTARY_FACTOR = 1.2;
-// Orta aktivite varsayımıyla TDEE (profil kartı için)
-export const MODERATE_FACTOR = 1.55;
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active';
+
+export const ACTIVITY_LEVELS: { value: ActivityLevel; factor: number; label: string; desc: string }[] = [
+  { value: 'sedentary', factor: 1.2, label: 'Hareketsiz', desc: 'Masa başı, günlük hareket az' },
+  { value: 'light', factor: 1.375, label: 'Hafif', desc: 'Günlük yürüyüş, ayakta iş; düzenli spor yok' },
+  { value: 'moderate', factor: 1.55, label: 'Orta', desc: 'Haftada 3-5 gün spor' },
+  { value: 'active', factor: 1.725, label: 'Yüksek', desc: 'Haftada 6-7 gün yoğun spor veya fiziksel iş' },
+];
+
+export const DEFAULT_ACTIVITY_LEVEL: ActivityLevel = 'light';
+
+export const toActivityLevel = (value: unknown): ActivityLevel =>
+  ACTIVITY_LEVELS.some((l) => l.value === value) ? (value as ActivityLevel) : DEFAULT_ACTIVITY_LEVEL;
+
+export const activityFactor = (level: ActivityLevel) => ACTIVITY_LEVELS.find((l) => l.value === level)!.factor;
+export const activityLabel = (level: ActivityLevel) => ACTIVITY_LEVELS.find((l) => l.value === level)!.label;
+
+// Hareketsiz ve hafif düzey düzenli antrenman içermez; kaydedilen egzersiz yalnızca bu düzeylerde ayrıca sayılır
+export const countsLoggedExercise = (level: ActivityLevel) => level === 'sedentary' || level === 'light';
+
+export const maintenanceKcal = (bmr: number, level: ActivityLevel) => Math.round(bmr * activityFactor(level));

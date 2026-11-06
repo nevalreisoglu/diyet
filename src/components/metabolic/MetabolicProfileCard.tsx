@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { MetabolicProfile } from '@/hooks/useMetabolicProfile';
+import { activityLabel } from '@/lib/metabolism';
 import { Activity, Flame, Scale, Ruler, User, Percent, Dumbbell, Droplets, CircleDot } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
@@ -59,7 +60,7 @@ export const MetabolicProfileCard = ({ profile }: Props) => {
 
   const stats = [
     { icon: Flame, label: 'BMR', value: profile.bmr ? `${profile.bmr} kcal` : '—', desc: bmrDesc },
-    { icon: Activity, label: 'TDEE', value: profile.tdee ? `${profile.tdee} kcal` : '—', desc: 'Toplam Günlük Enerji' },
+    { icon: Activity, label: 'TDEE', value: profile.tdee ? `${profile.tdee} kcal` : '—', desc: `Günlük harcama · ${activityLabel(profile.activityLevel)} aktivite` },
     { icon: Scale, label: 'BMI', value: profile.bmi ? `${profile.bmi}` : '—', desc: profile.bmiCategory || '' },
     { icon: Ruler, label: 'Boy', value: profile.heightCm ? `${profile.heightCm} cm` : '—', desc: '' },
   ];
